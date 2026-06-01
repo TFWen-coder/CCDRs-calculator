@@ -488,6 +488,19 @@ footer p{opacity:.65;font-size:.82rem;margin-bottom:.25rem}
       </div>
       <div id="res-rec"></div>
     </div>
+    <!-- 歷史趨勢 -->
+    <div id="history-section" style="display:none;margin-top:1.25rem">
+      <div style="font-size:.95rem;font-weight:800;margin-bottom:.75rem">📈 追蹤紀錄（本裝置）</div>
+      <div style="background:#F8FAFE;border-radius:12px;padding:1.1rem">
+        <div id="history-info" style="font-size:.82rem;color:var(--lite);margin-bottom:.75rem"></div>
+        <canvas id="ch-history" height="130"></canvas>
+      </div>
+      <div style="font-size:.75rem;color:var(--lite);margin-top:.5rem;text-align:right">
+        追蹤碼：<code id="dog-id-display" style="background:#eee;padding:.1rem .4rem;border-radius:4px"></code>
+        （同一台裝置下次填寫會自動連結）
+      </div>
+    </div>
+
     <div style="text-align:center;margin-top:.75rem">
       <button onclick="scrollTo({top:document.getElementById('stats').offsetTop-70,behavior:'smooth'})"
         style="background:var(--pri);color:#fff;border:none;padding:.6rem 1.5rem;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;font-family:inherit">
@@ -624,21 +637,6 @@ footer p{opacity:.65;font-size:.82rem;margin-bottom:.25rem}
   <p>🐾 本工具僅供參考，不能取代專業獸醫診斷。若擔心愛犬認知狀況，請盡快諮詢動物醫院。</p>
   <p>資料來源：Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022</p>
   <p style="margin-top:.5rem;opacity:.55">填寫資料會匿名同步至 Firebase Firestore，用於跨用戶統計分析。</p>
-  <div id="setup-guide" style="margin-top:1.5rem;text-align:left;max-width:680px;margin-left:auto;margin-right:auto;
-    background:rgba(255,255,255,.07);border-radius:12px;padding:1.25rem;font-size:.82rem;opacity:.8">
-    <strong style="font-size:.9rem">🔧 Firebase 設定步驟（只需做一次）</strong>
-    <ol style="margin-top:.75rem;padding-left:1.4rem;line-height:2">
-      <li>前往 <strong>console.firebase.google.com</strong> → 用 Google 帳號登入 → <strong>新增專案</strong>（名稱任意，關閉 Google Analytics 即可）</li>
-      <li>進入專案後，點左側 <strong>Firestore Database</strong> → <strong>建立資料庫</strong> → 選 <strong>正式模式（production mode）</strong> → 地區選 <strong>asia-east1（台灣最近）</strong></li>
-      <li>Firestore 建好後，點左側 <strong>專案設定（齒輪圖示）</strong> → 往下找 <strong>你的應用程式</strong> → 點 <strong>&lt;/&gt; 網頁</strong> 圖示 → 應用程式名稱任意填 → 取得 <strong>firebaseConfig</strong> 物件</li>
-      <li>用文字編輯器開啟 <strong>index.html</strong>，找到 <code>firebaseConfig</code>，將六個 <code>"FILL_IN"</code> 換成剛才取得的值</li>
-      <li>設定 Firestore 安全規則：Firestore → <strong>規則</strong> 頁籤 → 將規則改為：<br>
-        <code style="display:block;margin:.4rem 0;padding:.5rem;background:rgba(0,0,0,.2);border-radius:6px;font-size:.78rem">allow read, create: if true;<br>allow update, delete: if false;</code>
-        → 點 <strong>發布</strong>
-      </li>
-      <li>將修改後的 <strong>index.html</strong> 重新上傳到 GitHub，即完成！</li>
-    </ol>
-  </div>
 </footer>
 <div class="notif" id="notif"></div>
 
@@ -805,9 +803,11 @@ document.getElementById('ccdr-form').addEventListener('submit',async function(e)
   const cat=SCALES[scale].getCat(score);
   const dogName=document.getElementById('dog-name').value||'您的狗狗';
 
-  const ok=await saveEntry({county,dogAge:parseInt(dogAge),dogSex,dogNeuter,scale,score,cat});
+  const dogId=getDogId();
+  const ok=await saveEntry({dogId,county,dogAge:parseInt(dogAge),dogSex,dogNeuter,scale,score,cat});
   if(ok){
     showResults(scale,score,cat,dogName);
+    showHistory(dogId,scale,score);
     setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth'}),100);
     showNotif('✅ 評估完成！結果已同步至社群統計。','var(--ok)');
   }
@@ -896,6 +896,16 @@ function showResults(scale,score,cat,dogName){
   document.getElementById('res-rec').innerHTML=recs[scale][cat]||'';
 }
 
+// ── DOG ID（每個瀏覽器一組，代表同一隻狗的追蹤碼）─────────────────────
+function getDogId(){
+  let id=localStorage.getItem('ccdr_dog_id');
+  if(!id){
+    id=Math.random().toString(36).substr(2,9).toUpperCase();
+    localStorage.setItem('ccdr_dog_id',id);
+  }
+  return id;
+}
+
 // ── DATA STORAGE (Firebase Firestore) ────────────────────────────────
 async function saveEntry(e){
   if(!FB_READY){
@@ -904,8 +914,9 @@ async function saveEntry(e){
   }
   try{
     await db.collection('submissions').add({
-      county:e.county, dogAge:e.dogAge, dogSex:e.dogSex,
-      dogNeuter:e.dogNeuter, scale:e.scale, score:e.score, cat:e.cat,
+      dogId:e.dogId, county:e.county, dogAge:e.dogAge,
+      dogSex:e.dogSex, dogNeuter:e.dogNeuter,
+      scale:e.scale, score:e.score, cat:e.cat,
       ts: firebase.firestore.FieldValue.serverTimestamp()
     });
     return true;
@@ -914,6 +925,18 @@ async function saveEntry(e){
     showNotif('⚠️ 資料儲存失敗，請確認網路連線','#E76F51');
     return false;
   }
+}
+
+// ── 統計去重：每隻狗（dogId+scale）只保留最新一筆 ────────────────────
+function deduplicateForStats(all){
+  const map={};
+  all.forEach(d=>{
+    if(!d.dogId) return;
+    const key=`${d.dogId}_${d.scale}`;
+    const ts=d.ts?.seconds||d.ts||0;
+    if(!map[key]||ts>(map[key].ts?.seconds||map[key].ts||0)) map[key]=d;
+  });
+  return Object.values(map);
 }
 
 // ── CHARTS ────────────────────────────────────────────────────────────
@@ -957,6 +980,7 @@ function drawEmpty(id){
 }
 
 function renderStats(all){
+  all=deduplicateForStats(all); // 每隻狗只算最新一筆
 
   ['ccdr','cades','ccas'].forEach(scale=>{
     const d=all.filter(x=>x.scale===scale);
@@ -1002,6 +1026,37 @@ function renderStats(all){
   });
 }
 
+// ── HISTORY TREND ────────────────────────────────────────────────────
+function showHistory(dogId, scale, latestScore){
+  document.getElementById('dog-id-display').textContent=dogId;
+  const S=SCALES[scale];
+  // 從 cachedData 取出本裝置這隻狗的所有紀錄（含剛送出的，等 snapshot 更新）
+  const hist=cachedData
+    .filter(d=>d.dogId===dogId&&d.scale===scale)
+    .sort((a,b)=>(a.ts?.seconds||0)-(b.ts?.seconds||0));
+  // 加上剛送出但尚未進 snapshot 的這筆
+  const allPts=[...hist.map(d=>d.score)];
+  if(!allPts.length||allPts[allPts.length-1]!==latestScore) allPts.push(latestScore);
+  const section=document.getElementById('history-section');
+  section.style.display='block';
+  document.getElementById('history-info').textContent=
+    `${S.name} · 共 ${allPts.length} 次填寫 · 此裝置追蹤中`;
+  if(CH['history'])CH['history'].destroy();
+  const labels=allPts.map((_,i)=>`第${i+1}次`);
+  const colors=allPts.map(s=>S.catColors[S.cats.indexOf(S.getCat(s))]||'#5B8FF9');
+  CH['history']=new Chart(document.getElementById('ch-history').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data:allPts,label:S.name+' 分數',
+      borderColor:'#5B8FF9',backgroundColor:'rgba(91,143,249,.12)',
+      pointBackgroundColor:colors,pointRadius:6,tension:.3,fill:true
+    }]},
+    options:{plugins:{legend:{display:false}},scales:{
+      y:{min:S.minScore,max:S.maxScore,ticks:{stepSize:Math.round((S.maxScore-S.minScore)/5)}}
+    }}
+  });
+}
+
 // ── TOGGLE STATS BLOCKS ───────────────────────────────────────────────
 function toggleStats(scale){
   const body=document.getElementById(`${scale}-body`);
@@ -1033,8 +1088,9 @@ if(FB_READY){
     renderStats(cachedData);
     // 更新統計區標題總筆數
     const total=cachedData.length;
+    const unique=deduplicateForStats(cachedData).length;
     document.getElementById('stats-total-badge').textContent=
-      total?`全台灣共 ${total} 筆填寫資料`:'尚無資料';
+      total?`全台灣共 ${unique} 隻狗（${total} 次填寫，統計以每隻最新一筆計算）`:'尚無資料';
   }, err=>console.error('Firestore listener error:',err));
 } else {
   document.getElementById('firebase-banner').style.display='block';
