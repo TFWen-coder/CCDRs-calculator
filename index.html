@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>犬認知功能障礙評估 | CCDR · CADES · CCAS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#5B8FF9;--pri-d:#3A6FD9;--sec:#F7A23E;
+  --ok:#52B788;--warn:#F4A261;--bad:#E76F51;--mild:#95D5B2;
+  --bg:#F5F7FF;--white:#fff;--txt:#2C3E50;--lite:#6C757D;
+  --bdr:#E2E8F0;--shd:0 2px 16px rgba(0,0,0,.07);
+}
+body{font-family:'Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--txt);line-height:1.7;font-size:15px}
+a{color:var(--pri);text-decoration:none}
+nav{background:var(--white);padding:.8rem 2rem;display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:0;z-index:200}
+.nav-logo{font-size:1.1rem;font-weight:800;color:var(--pri)}
+.nav-links{display:flex;gap:1.5rem;list-style:none}
+.nav-links a{color:var(--lite);font-size:.85rem;transition:.2s}.nav-links a:hover{color:var(--pri)}
+.hero{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:3.5rem 2rem;text-align:center}
+.hero-icon{font-size:3.5rem;margin-bottom:.75rem}
+.hero h1{font-size:2.2rem;font-weight:900;margin-bottom:.5rem}
+.hero p{opacity:.9;max-width:580px;margin:0 auto 1.5rem;font-size:1rem}
+.badges{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:.3rem .9rem;border-radius:20px;font-size:.8rem}
+.container{max-width:920px;margin:0 auto;padding:0 1.5rem}
+section{padding:2.5rem 0}
+.sec-title{font-size:1.4rem;font-weight:800;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.card{background:var(--white);border-radius:16px;padding:1.75rem;box-shadow:var(--shd);margin-bottom:1.25rem}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+.info-card{background:var(--white);border-radius:12px;padding:1.25rem;border-left:4px solid var(--pri);box-shadow:var(--shd)}
+.info-card.w{border-left-color:var(--warn)}.info-card.g{border-left-color:var(--ok)}
+.info-card h3{font-size:.9rem;margin-bottom:.4rem;color:var(--pri)}
+.info-card.w h3{color:var(--warn)}.info-card.g h3{color:var(--ok)}
+.info-card p{font-size:.85rem;color:var(--lite)}
+/* TABS */
+.tab-nav{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab-btn{flex:1;min-width:120px;padding:.75rem 1rem;background:var(--white);border:2px solid var(--bdr);
+  border-radius:12px;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;
+  color:var(--lite);transition:.2s;text-align:center}
+.tab-btn:hover{border-color:var(--pri);color:var(--pri)}
+.tab-btn.active{border-color:var(--pri);background:var(--pri);color:#fff}
+.tab-btn .tab-sub{display:block;font-size:.72rem;font-weight:400;opacity:.8;margin-top:.1rem}
+.tab-content{display:none}.tab-content.active{display:block}
+/* SCALE INFO CARD */
+.scale-info{border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;border:1px solid var(--bdr);background:#FAFBFF}
+.scale-info-top{display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;flex-wrap:wrap}
+.scale-badge{display:inline-block;padding:.25rem .8rem;border-radius:20px;font-size:.8rem;font-weight:800;color:#fff}
+.scale-badge.ccdr{background:var(--pri)}.scale-badge.cades{background:#8B5CF6}.scale-badge.ccas{background:#059669}
+.scale-info-meta{font-size:.82rem;color:var(--lite)}
+.pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.pros-cons{grid-template-columns:1fr}}
+.pros-cons ul{padding-left:1.1rem}
+.pros-cons li{font-size:.82rem;color:var(--lite);margin-bottom:.25rem}
+.pros h4{font-size:.85rem;font-weight:800;color:var(--ok);margin-bottom:.4rem}
+.cons h4{font-size:.85rem;font-weight:800;color:var(--bad);margin-bottom:.4rem}
+/* PROGRESS */
+.prog-wrap{position:sticky;top:56px;z-index:190;background:var(--white);
+  padding:.6rem 1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.05);display:none}
+.prog-top{display:flex;justify-content:space-between;font-size:.78rem;color:var(--lite);margin-bottom:.3rem}
+.prog-track{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--pri),var(--sec));border-radius:3px;transition:width .3s;width:0%}
+/* FORM */
+.fsec{background:var(--white);border-radius:16px;padding:1.75rem;box-shadow:var(--shd);margin-bottom:1.25rem}
+.fsec-title{font-size:1rem;font-weight:800;color:var(--pri);margin-bottom:1.25rem;padding-bottom:.75rem;
+  border-bottom:2px solid var(--bdr);display:flex;align-items:center;gap:.5rem}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:.75rem}
+.fg{display:flex;flex-direction:column;gap:.35rem}
+label{font-size:.85rem;font-weight:700;color:var(--txt)}
+.req{color:var(--bad)}
+input,select{padding:.55rem .9rem;border:1.5px solid var(--bdr);border-radius:8px;font-size:.88rem;
+  color:var(--txt);background:var(--white);transition:.2s;width:100%;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(91,143,249,.15)}
+/* DOMAIN HEADER */
+.domain-hd{font-size:.82rem;font-weight:800;color:var(--white);background:var(--pri);
+  padding:.35rem .9rem;border-radius:6px;margin:1rem 0 .5rem;display:inline-block}
+.domain-hd.cades{background:#8B5CF6}.domain-hd.ccas{background:#059669}
+/* QUESTIONS */
+.qblock{margin-bottom:1.1rem;padding:1.1rem;background:#F8FAFE;border-radius:12px;transition:.2s}
+.qblock:hover{background:#EEF4FF}
+.qtext{font-size:.88rem;font-weight:700;margin-bottom:.85rem;display:flex;align-items:flex-start;gap:.5rem}
+.qnum{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;
+  background:var(--pri);color:#fff;border-radius:50%;font-size:.68rem;font-weight:800;flex-shrink:0;margin-top:.15rem}
+.qnum.cades{background:#8B5CF6}.qnum.ccas{background:#059669}
+.multi{display:inline-block;background:var(--sec);color:#fff;font-size:.68rem;padding:.1rem .4rem;
+  border-radius:4px;margin-left:.3rem;font-weight:800;vertical-align:middle}
+/* 5-col options (CCDR) */
+.opts{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem}
+/* 4-col options (CCAS) */
+.opts4{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem}
+/* 6-col options (CADES) */
+.opts6{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem}
+.opt{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.opt input[type=radio]{display:none}
+.obox{width:100%;padding:.5rem .2rem;border:2px solid var(--bdr);border-radius:8px;text-align:center;
+  font-size:.7rem;color:var(--lite);transition:.2s;cursor:pointer;line-height:1.3;min-height:2.6rem;
+  display:flex;align-items:center;justify-content:center}
+.opt input:checked+.obox{border-color:var(--pri);background:var(--pri);color:#fff;font-weight:700}
+.tab-content[data-scale=cades] .opt input:checked+.obox{border-color:#8B5CF6;background:#8B5CF6}
+.tab-content[data-scale=ccas] .opt input:checked+.obox{border-color:#059669;background:#059669}
+.obox:hover{border-color:var(--pri);color:var(--pri)}
+/* SUBMIT */
+.submit-btn{width:100%;padding:1rem;background:linear-gradient(135deg,var(--pri),var(--pri-d));
+  color:#fff;border:none;border-radius:12px;font-size:1.05rem;font-weight:800;cursor:pointer;
+  transition:.2s;margin-top:.75rem;font-family:inherit}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(91,143,249,.4)}
+/* RESULTS */
+#results{display:none}
+.score-box{text-align:center;padding:1.5rem}
+.score-num{font-size:5rem;font-weight:900;line-height:1;margin-bottom:.25rem}
+.score-lbl{font-size:1.3rem;font-weight:800;margin-bottom:.3rem}
+.s-ok{color:var(--ok)}.s-mild{color:var(--mild)}.s-warn{color:var(--warn)}.s-bad{color:var(--bad)}
+.score-bar-wrap{max-width:500px;margin:1.5rem auto}
+.sbar{height:18px;border-radius:9px;position:relative}
+.sind{position:absolute;top:-7px;width:5px;height:32px;background:var(--txt);border-radius:3px;transform:translateX(-50%)}
+.sbar-lbl{display:flex;justify-content:space-between;margin-top:.4rem;font-size:.75rem;color:var(--lite)}
+.rec{border-radius:12px;padding:1.25rem 1.5rem;margin-top:1rem}
+.rec.ok{background:#E8F5E9;border:1px solid #A5D6A7}.rec.warn{background:#FFF3E0;border:1px solid #FFCC80}
+.rec.bad{background:#FFEBEE;border:1px solid #EF9A9A}.rec.mild{background:#F0FFF4;border:1px solid #B7DFCA}
+.rec h3{margin-bottom:.6rem}.rec ul{padding-left:1.4rem}.rec li{margin-bottom:.35rem;font-size:.88rem}
+/* STATS */
+.stats-block{background:var(--white);border-radius:16px;box-shadow:var(--shd);margin-bottom:1.25rem;overflow:hidden}
+.stats-block-hd{padding:1rem 1.5rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;
+  font-weight:800;font-size:1rem;transition:.2s;user-select:none}
+.stats-block-hd:hover{background:#F8FAFE}
+.stats-block-hd .cnt{margin-left:auto;font-size:.8rem;font-weight:400;color:var(--lite)}
+.stats-block-hd .arr{transition:.3s;font-size:.8rem}
+.stats-block-body{padding:1.25rem;display:none}
+.stats-block-body.open{display:block}
+.mini-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1.25rem}
+.mc{background:var(--bg);border-radius:10px;padding:.9rem;text-align:center}
+.mc-num{font-size:1.6rem;font-weight:900;color:var(--pri)}
+.mc-lbl{font-size:.72rem;color:var(--lite);margin-top:.1rem}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+@media(max-width:650px){.charts-row{grid-template-columns:1fr}}
+.ccard{background:var(--bg);border-radius:10px;padding:1rem}
+.ctitle{font-size:.82rem;font-weight:800;margin-bottom:.75rem}
+/* FUN FACTS */
+.ff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.ff{background:var(--white);border-radius:12px;padding:1.25rem;box-shadow:var(--shd);border-top:4px solid var(--sec)}
+.ff-icon{font-size:1.8rem;margin-bottom:.5rem}.ff h3{font-size:.9rem;font-weight:800;margin-bottom:.4rem}
+.ff p{font-size:.82rem;color:var(--lite)}
+/* ACCORDION */
+.acc-item{border:1px solid var(--bdr);border-radius:10px;margin-bottom:.75rem;overflow:hidden}
+.acc-hd{padding:.9rem 1.1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:.9rem;background:var(--white);transition:.2s;user-select:none}
+.acc-hd:hover{background:#F8FAFE}
+.acc-bd{padding:1rem 1.1rem;background:#F8FAFE;font-size:.85rem;color:var(--lite);display:none;line-height:1.8}
+.acc-bd.open{display:block}
+.acc-arr{transition:.3s}.acc-arr.open{transform:rotate(180deg)}
+/* NOTIF */
+.notif{position:fixed;top:76px;right:20px;background:var(--pri);color:#fff;padding:.9rem 1.3rem;
+  border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:1000;opacity:0;
+  transform:translateX(120px);transition:.3s;max-width:280px;font-size:.88rem}
+.notif.show{opacity:1;transform:translateX(0)}
+footer{background:#2C3E50;color:#fff;text-align:center;padding:2rem;margin-top:1rem}
+footer p{opacity:.65;font-size:.82rem;margin-bottom:.25rem}
+@media(max-width:700px){.hero h1{font-size:1.7rem}.score-num{font-size:3.5rem}.opts6{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">🐾 犬認知評估</div>
+  <ul class="nav-links">
+    <li><a href="#intro">前言</a></li>
+    <li><a href="#form-section">開始評估</a></li>
+    <li><a href="#stats">統計</a></li>
+    <li><a href="#literature">文獻</a></li>
+  </ul>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">🐶</div>
+  <h1>犬認知功能障礙評估量表</h1>
+  <p>整合 CCDR · CADES · CCAS 三種經實證驗證的量表<br>幫助飼主及早察覺愛犬的認知退化</p>
+  <div class="badges">
+    <span class="badge">🔬 科學實證</span>
+    <span class="badge">⏱ 約 3–5 分鐘</span>
+    <span class="badge">📖 持續更新文獻</span>
+  </div>
+</div>
+
+<div class="container" id="intro">
+  <section>
+    <div class="sec-title">📋 關於這份量表</div>
+    <div class="card">
+      <p><strong>犬認知功能障礙（Canine Cognitive Dysfunction, CCD）</strong>，俗稱「犬失智症」，是老齡犬常見的神經行為症候群，特徵包括學習與記憶力下降、空間感喪失、社交互動改變及睡眠模式異常，與人類阿茲海默症有高度相似性。</p>
+      <br>
+      <p><strong>盛行率比你想像的高得多。</strong>Neilson et al.（2001）調查超過 180 隻老齡犬，發現 11–12 歲犬隻中有 <strong>28%</strong> 出現至少一種 CDS 症狀，15–16 歲時更高達 <strong>68%</strong>。Azkona et al.（2009）的西班牙研究顯示，10 歲以上老齡犬約 <strong>22%</strong> 出現認知退化相符的行為改變。Salvin et al.（2011）以 957 隻老齡犬估計整體盛行率約 12%，14 歲以上達 31%。</p>
+      <br>
+      <p>美國「<strong>犬齡研究計畫（Dog Aging Project）</strong>」自 2018 年起追蹤逾 5 萬隻犬隻，確認認知退化與年齡、體型、活動量、社交環境顯著相關（Bray et al., 2020, 2022）。近年研究也發現 CCD 犬隻腦脊髓液中 β-澱粉樣蛋白與 tau 蛋白堆積與人類阿茲海默症高度相似，強化了其轉譯醫學地位（Schütt et al., 2015; Head et al., 2019）。</p>
+      <br>
+      <p>儘管如此，仍有高達 <strong>85% 的潛在患犬未被確診</strong>（Salvin et al., 2010）。<strong>本頁整合三種量表，適用於 8 歲以上狗狗</strong>，結合獸醫診斷，可作為 CCD 的篩查與縱向追蹤工具。</p>
+    </div>
+    <div class="info-grid">
+      <div class="info-card"><h3>📌 填寫說明</h3><p>請根據狗狗<strong>近期行為</strong>作答。若不確定，選最接近選項。標 * 為必填。</p></div>
+      <div class="info-card w"><h3>⚠️ 重要聲明</h3><p>本量表為篩查工具，<strong>不能取代獸醫診斷</strong>。若擔心狗狗的認知狀況，請盡快就醫諮詢。</p></div>
+      <div class="info-card g"><h3>🌿 早期發現的好處</h3><p>愈早介入（selegiline、Omega-3、環境豐富化），效果愈好。早期治療有助延緩退化進程。</p></div>
+    </div>
+  </section>
+</div>
+
+<div class="prog-wrap" id="prog-wrap">
+  <div class="prog-top"><span id="prog-text">0 / 0 題已作答</span><span id="prog-pct">0%</span></div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+</div>
+
+<div class="container" id="form-section">
+  <section>
+    <div class="sec-title">📝 開始評估</div>
+    <form id="ccdr-form" novalidate>
+
+      <!-- Shared dog info -->
+      <div class="fsec">
+        <div class="fsec-title">🐕 狗狗基本資料</div>
+        <div class="frow">
+          <div class="fg"><label for="dog-name">狗狗名字（選填）</label><input type="text" id="dog-name" placeholder="例：小黑"></div>
+          <div class="fg">
+            <label for="dog-age">年齡 <span class="req">*</span></label>
+            <select id="dog-age" required>
+              <option value="">請選擇</option>
+              <option value="8">8 歲</option><option value="9">9 歲</option><option value="10">10 歲</option>
+              <option value="11">11 歲</option><option value="12">12 歲</option><option value="13">13 歲</option>
+              <option value="14">14 歲</option><option value="15">15 歲</option><option value="16">16 歲以上</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-sex">性別 <span class="req">*</span></label>
+            <select id="dog-sex" required>
+              <option value="">請選擇</option><option value="公">公</option><option value="母">母</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-neuter">絕育狀態 <span class="req">*</span></label>
+            <select id="dog-neuter" required>
+              <option value="">請選擇</option><option value="已絕育">已絕育</option><option value="未絕育">未絕育</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-breed">品種（選填）</label>
+            <input type="text" id="dog-breed" placeholder="例：拉布拉多">
+          </div>
+        </div>
+      </div>
+
+      <div class="fsec" style="padding-bottom:1rem">
+        <div class="fsec-title">📍 居住縣市 <span class="req">*</span></div>
+        <div style="max-width:260px">
+          <select id="county" required>
+            <option value="">請選擇縣市</option>
+            <option>台北市</option><option>新北市</option><option>基隆市</option><option>桃園市</option>
+            <option>新竹市</option><option>新竹縣</option><option>苗栗縣</option><option>台中市</option>
+            <option>南投縣</option><option>彰化縣</option><option>雲林縣</option><option>嘉義市</option>
+            <option>嘉義縣</option><option>台南市</option><option>高雄市</option><option>屏東縣</option>
+            <option>宜蘭縣</option><option>花蓮縣</option><option>台東縣</option><option>澎湖縣</option>
+            <option>金門縣</option><option>連江縣</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tab Nav -->
+      <div class="tab-nav">
+        <button type="button" class="tab-btn active" data-tab="ccdr" onclick="switchTab('ccdr')">
+          CCDR<span class="tab-sub">Salvin et al. 2011 · 13 題</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="cades" onclick="switchTab('cades')">
+          CADES<span class="tab-sub">Madari et al. 2015 · 19 題</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="ccas" onclick="switchTab('ccas')">
+          CCAS<span class="tab-sub">González-Martínez 2022 · 17 題</span>
+        </button>
+      </div>
+
+      <!-- ═══ CCDR TAB ═══ -->
+      <div id="tab-ccdr" class="tab-content active" data-scale="ccdr">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge ccdr">CCDR</span>
+            <span class="scale-info-meta">Salvin et al. (2011) · The Veterinary Journal · 13 題 · 最高 80 分 · 閾值：&lt;40 正常 / 40–49 高風險 / ≥50 疑似 CCD</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>大型樣本驗證（n = 957），整體診斷準確率 98.9%</li>
+              <li>心理測量學驗證完整（Cronbach α = 0.86）</li>
+              <li>包含「嚴重程度敏感題」（×2、×3 加權），提升鑑別力</li>
+              <li>適合長期縱向追蹤（≥4 分變化即具臨床意義）</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>近年文獻指出對<strong>早期／輕微認知障礙（MCI）敏感度較低</strong></li>
+              <li>部分題目需回顧 6 個月變化，可能有回憶偏差</li>
+              <li>僅分三級（正常／高風險／CCD），不區分輕中重度</li>
+            </ul></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-title">📊 第一部分：行為頻率（近期）</div>
+          <p style="font-size:.83rem;color:var(--lite);margin-bottom:1rem">以下行為出現的頻率：</p>
+          <div class="qblock"><div class="qtext"><span class="qnum">1</span>漫無目的地踱步、繞圈或無方向性徘徊</div>
+            <div class="opts" id="q1">
+              <label class="opt"><input type="radio" name="q1" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q1" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q1" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q1" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q1" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">2</span>發呆地凝視牆壁或地板</div>
+            <div class="opts" id="q2">
+              <label class="opt"><input type="radio" name="q2" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q2" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q2" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q2" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q2" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">3</span>卡在障礙物後面，無法自行繞開</div>
+            <div class="opts" id="q3">
+              <label class="opt"><input type="radio" name="q3" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q3" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q3" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q3" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q3" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">4</span>無法認出熟悉的人或其他寵物</div>
+            <div class="opts" id="q4">
+              <label class="opt"><input type="radio" name="q4" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q4" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q4" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q4" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q4" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">5</span>撞上牆壁或門</div>
+            <div class="opts" id="q5">
+              <label class="opt"><input type="radio" name="q5" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q5" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q5" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q5" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q5" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">6</span>被撫摸時走開或刻意迴避</div>
+            <div class="opts" id="q6">
+              <label class="opt"><input type="radio" name="q6" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q6" value="2"><span class="obox">每月約一次</span></label>
+              <label class="opt"><input type="radio" name="q6" value="3"><span class="obox">每週約一次</span></label>
+              <label class="opt"><input type="radio" name="q6" value="4"><span class="obox">每天</span></label>
+              <label class="opt"><input type="radio" name="q6" value="5"><span class="obox">每天多次</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">7</span>難以找到掉落在地板上的食物</div>
+            <div class="opts" id="q7">
+              <label class="opt"><input type="radio" name="q7" value="1"><span class="obox">從不</span></label>
+              <label class="opt"><input type="radio" name="q7" value="2"><span class="obox">1–30% 的時候</span></label>
+              <label class="opt"><input type="radio" name="q7" value="3"><span class="obox">31–60%</span></label>
+              <label class="opt"><input type="radio" name="q7" value="4"><span class="obox">61–99%</span></label>
+              <label class="opt"><input type="radio" name="q7" value="5"><span class="obox">總是</span></label>
+            </div></div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-title">📈 第二部分：行為變化（與 6 個月前相比）</div>
+          <div class="qblock"><div class="qtext"><span class="qnum">8</span>踱步、繞圈或無方向徘徊的情況</div>
+            <div class="opts" id="q8">
+              <label class="opt"><input type="radio" name="q8" value="1"><span class="obox">少很多</span></label>
+              <label class="opt"><input type="radio" name="q8" value="2"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q8" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q8" value="4"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q8" value="5"><span class="obox">多很多</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">9</span>發呆凝視牆壁或地板的情況</div>
+            <div class="opts" id="q9">
+              <label class="opt"><input type="radio" name="q9" value="1"><span class="obox">少很多</span></label>
+              <label class="opt"><input type="radio" name="q9" value="2"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q9" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q9" value="4"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q9" value="5"><span class="obox">多很多</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">10</span>在原本保持乾淨的地方大小便<br><small style="color:var(--lite);font-weight:400">（若從未有此問題，請選「沒有變化」）</small></div>
+            <div class="opts" id="q10">
+              <label class="opt"><input type="radio" name="q10" value="1"><span class="obox">少很多</span></label>
+              <label class="opt"><input type="radio" name="q10" value="2"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q10" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q10" value="4"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q10" value="5"><span class="obox">多很多</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">11</span>難以找到掉落食物的情況 <span class="multi">×2</span></div>
+            <div class="opts" id="q11">
+              <label class="opt"><input type="radio" name="q11" value="1"><span class="obox">少很多</span></label>
+              <label class="opt"><input type="radio" name="q11" value="2"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q11" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q11" value="4"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q11" value="5"><span class="obox">多很多</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">12</span>無法認出熟悉的人或寵物的情況 <span class="multi">×3</span></div>
+            <div class="opts" id="q12">
+              <label class="opt"><input type="radio" name="q12" value="1"><span class="obox">少很多</span></label>
+              <label class="opt"><input type="radio" name="q12" value="2"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q12" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q12" value="4"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q12" value="5"><span class="obox">多很多</span></label>
+            </div></div>
+          <div class="qblock"><div class="qtext"><span class="qnum">13</span>花在活動上的時間：<br><small style="color:var(--lite);font-weight:400">（此題方向相反，「少很多」表示退化較明顯）</small></div>
+            <div class="opts" id="q13">
+              <label class="opt"><input type="radio" name="q13" value="1"><span class="obox">多很多</span></label>
+              <label class="opt"><input type="radio" name="q13" value="2"><span class="obox">多一點</span></label>
+              <label class="opt"><input type="radio" name="q13" value="3"><span class="obox">沒有變化</span></label>
+              <label class="opt"><input type="radio" name="q13" value="4"><span class="obox">少一點</span></label>
+              <label class="opt"><input type="radio" name="q13" value="5"><span class="obox">少很多</span></label>
+            </div></div>
+        </div>
+      </div><!-- end CCDR tab -->
+
+      <!-- ═══ CADES TAB ═══ -->
+      <div id="tab-cades" class="tab-content" data-scale="cades">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge cades">CADES</span>
+            <span class="scale-info-meta">Madari et al. (2015) · Applied Animal Behaviour Science · 19 題 · 最高 95 分 · 閾值：≤7 正常 / 8–23 輕度 / 24–44 中度 / ≥45 重度</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>細緻的<strong>四級嚴重程度</strong>分類（正常／輕度／中度／重度）</li>
+              <li>能有效追蹤「正常→輕度」及「輕度→中度」的疾病進展</li>
+              <li>6 個月轉換率研究：正常轉輕度 71.45%，輕度轉中度 50%（12 個月）</li>
+              <li>適合<strong>縱向監測</strong>治療反應與疾病進展</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>題目較多（19 題），填寫時間稍長</li>
+              <li>原始驗證樣本規模相對較小</li>
+              <li>以 4 個行為領域為主，未包含焦慮評估</li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-title" style="color:#8B5CF6">🟣 CADES 評量（0 = 從不 → 5 = 每天多次）</div>
+          <div id="cades-questions"></div>
+        </div>
+      </div><!-- end CADES tab -->
+
+      <!-- ═══ CCAS TAB ═══ -->
+      <div id="tab-ccas" class="tab-content" data-scale="ccas">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge ccas">CCAS</span>
+            <span class="scale-info-meta">González-Martínez et al. (2022) · 17 題 · 最高 69 分 · 閾值：0–7 正常 / 8–40 輕中度障礙 / 41–69 重度障礙</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>以 <strong>DISHAA 問卷</strong>為骨幹擴充設計，包含<strong>焦慮（Anxiety）</strong>領域</li>
+              <li>明確要求回顧「過去 6 個月」，標準化時間框架</li>
+              <li><strong>定向障礙項目計分 ×2</strong>，強調空間認知的臨床重要性</li>
+              <li>涵蓋 6 個行為領域，評估面向最全面</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>輕度與中度認知障礙合併為一區間（8–40），分辨度有限</li>
+              <li>焦慮領域僅有 1 題，可能不足以全面評估</li>
+              <li>定向障礙 ×2 加權可能使分數快速上升，影響解讀</li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-title" style="color:#059669">🟢 CCAS 評量（回顧過去 6 個月，0 = 從不 → 3 = 幾乎每天）</div>
+          <div id="ccas-questions"></div>
+        </div>
+      </div><!-- end CCAS tab -->
+
+      <button type="submit" class="submit-btn" id="submit-btn">🔍 計算評估結果</button>
+    </form>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="container" id="results">
+  <section>
+    <div class="sec-title">📊 評估結果</div>
+    <div class="card">
+      <div class="score-box">
+        <div style="font-size:.85rem;color:var(--lite);margin-bottom:.25rem" id="res-scale-label"></div>
+        <div class="score-num" id="res-score">—</div>
+        <div class="score-lbl" id="res-label">—</div>
+        <div id="res-dogname" style="color:var(--lite);font-size:.88rem"></div>
+        <div class="score-bar-wrap">
+          <div class="sbar" id="res-bar"><div class="sind" id="score-ind"></div></div>
+          <div class="sbar-lbl" id="res-bar-lbl"></div>
+        </div>
+      </div>
+      <div id="res-rec"></div>
+    </div>
+    <div style="text-align:center;margin-top:.75rem">
+      <button onclick="scrollTo({top:document.getElementById('stats').offsetTop-70,behavior:'smooth'})"
+        style="background:var(--pri);color:#fff;border:none;padding:.6rem 1.5rem;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;font-family:inherit">
+        👇 查看社群統計
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- STATS -->
+<div class="container" id="stats">
+  <section>
+    <div class="sec-title">📈 台灣飼主社群統計</div>
+
+    <!-- Firebase 未設定提示 -->
+    <div id="firebase-banner" style="display:none;background:#FFF3E0;border:1px solid #FFCC80;
+      border-radius:12px;padding:1.1rem 1.4rem;margin-bottom:1.25rem;font-size:.88rem">
+      ⚠️ <strong>Firebase 尚未設定</strong> — 統計目前無法顯示跨用戶資料。
+      請依照頁面底部的設定步驟完成設定後重新上傳 index.html。
+    </div>
+
+    <p style="font-size:.83rem;color:var(--lite);margin-bottom:.75rem">
+      資料來自所有使用本工具的飼主（即時同步，完全匿名）。
+    </p>
+    <p id="stats-total-badge" style="font-size:.88rem;font-weight:700;color:var(--pri);margin-bottom:1.25rem">載入中…</p>
+
+    <!-- CCDR block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('ccdr')">
+        <span style="color:var(--pri)">■</span> CCDR 統計
+        <span class="cnt" id="ccdr-cnt">尚無資料</span>
+        <span class="arr" id="ccdr-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="ccdr-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="d-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="d-normal">—</div><div class="mc-lbl">正常 &lt;40</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="d-atrisk">—</div><div class="mc-lbl">高風險 40–49</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="d-ccd">—</div><div class="mc-lbl">疑似CCD ≥50</div></div>
+          <div class="mc"><div class="mc-num" id="d-avg">—</div><div class="mc-lbl">平均分數</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-d-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-d-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CADES block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('cades')">
+        <span style="color:#8B5CF6">■</span> CADES 統計
+        <span class="cnt" id="cades-cnt">尚無資料</span>
+        <span class="arr" id="cades-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="cades-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="c-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="c-normal">—</div><div class="mc-lbl">正常 ≤7</div></div>
+          <div class="mc"><div class="mc-num s-mild" id="c-mild">—</div><div class="mc-lbl">輕度 8–23</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="c-mod">—</div><div class="mc-lbl">中度 24–44</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="c-sev">—</div><div class="mc-lbl">重度 ≥45</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-c-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-c-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CCAS block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('ccas')">
+        <span style="color:#059669">■</span> CCAS 統計
+        <span class="cnt" id="ccas-cnt">尚無資料</span>
+        <span class="arr" id="ccas-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="ccas-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="a-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="a-normal">—</div><div class="mc-lbl">正常 0–7</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="a-mci">—</div><div class="mc-lbl">輕中度 8–40</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="a-sev">—</div><div class="mc-lbl">重度 ≥41</div></div>
+          <div class="mc"><div class="mc-num" id="a-avg">—</div><div class="mc-lbl">平均分數</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-a-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-a-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FUN FACTS -->
+<div class="container">
+  <section>
+    <div class="sec-title">🔬 關於犬認知障礙的研究發現</div>
+    <div class="ff-grid">
+      <div class="ff"><div class="ff-icon">📈</div><h3>隨年齡急劇上升</h3><p>8–10 歲盛行率約 4.4%，12–14 歲躍升至 18.6%，14 歲以上更達 31%（Salvin et al., 2011）。Neilson et al.（2001）估計 15–16 歲犬有 68% 出現認知衰退症狀。</p></div>
+      <div class="ff"><div class="ff-icon">🎾</div><h3>工作犬患病率較低</h3><p>導盲犬、搜救犬等工作犬因長期維持認知任務，腦神經連結更活躍，CCD 發生率顯著低於一般伴侶犬，支持「認知保留（cognitive reserve）」理論。</p></div>
+      <div class="ff"><div class="ff-icon">🧠</div><h3>與阿茲海默症高度相似</h3><p>CCD 在神經病理（β-澱粉樣蛋白、tau 蛋白沉積）、臨床表現及藥物反應上均與人類阿茲海默症高度相似，是目前最重要的自然動物模型之一。</p></div>
+      <div class="ff"><div class="ff-icon">🔍</div><h3>85% 的病例被忽略</h3><p>研究顯示高達 85% 的 CCD 潛在患犬從未被獸醫確診，主要原因是飼主誤以為症狀屬於正常老化（Salvin et al., 2010）。</p></div>
+      <div class="ff"><div class="ff-icon">🥦</div><h3>飲食介入有效</h3><p>富含抗氧化劑（維生素 E、C）、L-肉鹼及 Omega-3 脂肪酸的飲食可幫助維護認知功能，且愈早開始、效果愈佳（Landsberg, 2005）。</p></div>
+      <div class="ff"><div class="ff-icon">🏃</div><h3>豐富化環境是最佳預防</h3><p>日常散步、嗅聞遊戲、學習新技能、社交互動等「大腦體操」，縱向研究支持持續的認知刺激可延緩退化（Dog Aging Project, 2022）。</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- LITERATURE -->
+<div class="container" id="literature">
+  <section>
+    <div class="sec-title">📚 文獻摘要</div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CCDR — Salvin et al. (2011) The Veterinary Journal <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">大樣本（n=957）資料驅動研究，建立 13 題 CCDR 量表。診斷準確率 98.9%（PPV 77.8%，NPV 99.3%），Cronbach α=0.86，再測信度 r=0.73。分三級：&lt;40 正常、40–49 高風險、≥50 疑似 CCD。包含嚴重程度敏感題（×2、×3 加權）。近年文獻指出對早期 MCI 敏感度不足，但仍是監測首選工具。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CADES — Madari et al. (2015) Applied Animal Behaviour Science <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">19 題，4 個行為領域（空間定向、社交互動、睡眠節律、室內排泄），每題 0–5 分，最高 95 分。分四級：≤7 正常、8–23 輕度、24–44 中度、≥45 重度。6 個月追蹤研究發現：正常→輕度轉換率 42%（6 個月）/ 71.45%（12 個月）；輕度→中度 24%（6 個月）/ 50%（12 個月）。適合縱向監測疾病進展與治療反應。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CCAS — González-Martínez et al. (2022) <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">17 題，6 個領域（定向障礙×2、社交互動、睡眠節律、學習與記憶、活動量、焦慮），每題 0–3 分。定向障礙 6 題計分 ×2，最高 69 分。分三級：0–7 正常老化、8–40 輕中度認知障礙（MCI）、41–69 重度認知障礙。以 DISHAA 問卷為骨幹擴充設計，為目前唯一含焦慮領域的標準化 CCD 量表。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">盛行率與流行病學 <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">Neilson et al. (2001)：11–12 歲 28%，15–16 歲 68% 出現 CDS 症狀。Azkona et al. (2009)：10 歲以上約 22%。Salvin et al. (2011)：8 歲以上整體 12%，14 歲以上 31%，且高達 85% 未被確診。Dog Aging Project (Bray et al., 2020, 2022)：追蹤 5 萬隻以上犬隻，確認認知退化與年齡、體型、社交環境顯著相關。</div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <p>🐾 本工具僅供參考，不能取代專業獸醫診斷。若擔心愛犬認知狀況，請盡快諮詢動物醫院。</p>
+  <p>資料來源：Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022</p>
+  <p style="margin-top:.5rem;opacity:.55">填寫資料會匿名同步至 Firebase Firestore，用於跨用戶統計分析。</p>
+  <div id="setup-guide" style="margin-top:1.5rem;text-align:left;max-width:680px;margin-left:auto;margin-right:auto;
+    background:rgba(255,255,255,.07);border-radius:12px;padding:1.25rem;font-size:.82rem;opacity:.8">
+    <strong style="font-size:.9rem">🔧 Firebase 設定步驟（只需做一次）</strong>
+    <ol style="margin-top:.75rem;padding-left:1.4rem;line-height:2">
+      <li>前往 <strong>console.firebase.google.com</strong> → 用 Google 帳號登入 → <strong>新增專案</strong>（名稱任意，關閉 Google Analytics 即可）</li>
+      <li>進入專案後，點左側 <strong>Firestore Database</strong> → <strong>建立資料庫</strong> → 選 <strong>正式模式（production mode）</strong> → 地區選 <strong>asia-east1（台灣最近）</strong></li>
+      <li>Firestore 建好後，點左側 <strong>專案設定（齒輪圖示）</strong> → 往下找 <strong>你的應用程式</strong> → 點 <strong>&lt;/&gt; 網頁</strong> 圖示 → 應用程式名稱任意填 → 取得 <strong>firebaseConfig</strong> 物件</li>
+      <li>用文字編輯器開啟 <strong>index.html</strong>，找到 <code>firebaseConfig</code>，將六個 <code>"FILL_IN"</code> 換成剛才取得的值</li>
+      <li>設定 Firestore 安全規則：Firestore → <strong>規則</strong> 頁籤 → 將規則改為：<br>
+        <code style="display:block;margin:.4rem 0;padding:.5rem;background:rgba(0,0,0,.2);border-radius:6px;font-size:.78rem">allow read, create: if true;<br>allow update, delete: if false;</code>
+        → 點 <strong>發布</strong>
+      </li>
+      <li>將修改後的 <strong>index.html</strong> 重新上傳到 GitHub，即完成！</li>
+    </ol>
+  </div>
+</footer>
+<div class="notif" id="notif"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// 🔧 Firebase 設定：將下方六個值換成你在 Firebase Console 取得的設定
+// ══════════════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyBTG4gwp_t2Sf5sJYhG-PTAbPrWS2N58pI",
+  authDomain:        "cdscalculator-9ddcf.firebaseapp.com",
+  projectId:         "cdscalculator-9ddcf",
+  storageBucket:     "cdscalculator-9ddcf.firebasestorage.app",
+  messagingSenderId: "1016584454839",
+  appId:             "1:1016584454839:web:798def7704a7cb969e4332"
+};
+// ══════════════════════════════════════════════════════════════════════
+
+const FB_READY = !Object.values(firebaseConfig).some(v=>v==="FILL_IN");
+let db = null;
+let cachedData = [];
+if(FB_READY){
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+}
+
+// ── SCALE DEFINITIONS ────────────────────────────────────────────────
+const SCALES = {
+  ccdr:{
+    name:'CCDR', qCount:13, maxScore:80, minScore:16,
+    cats:['Normal','AtRisk','CCD'],
+    catLabels:['正常','高風險','疑似CCD'],
+    catColors:['#52B788','#F4A261','#E76F51'],
+    catRanges:['< 40','40–49','≥ 50'],
+    getCat:s=>s<40?'Normal':s<50?'AtRisk':'CCD',
+    catClass:c=>({Normal:'s-ok',AtRisk:'s-warn',CCD:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常（Normal）',AtRisk:'高風險（At Risk）',CCD:'疑似 CCD（Canine Cognitive Dysfunction）'}[c]),
+    calcScore(vals){return vals.reduce((t,v,i)=>t+(i===10?v*2:i===11?v*3:v),0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 37%,#F4A261 37%,#F4A261 52%,#E76F51 52%,#E76F51 100%)',
+    barLabels:['16','40','50','80'],
+    barPct:s=>Math.max(0,Math.min(100,(s-16)/64*100))
+  },
+  cades:{
+    name:'CADES', qCount:19, maxScore:95, minScore:0,
+    cats:['Normal','Mild','Moderate','Severe'],
+    catLabels:['正常','輕度','中度','重度'],
+    catColors:['#52B788','#95D5B2','#F4A261','#E76F51'],
+    catRanges:['0–7','8–23','24–44','≥ 45'],
+    getCat:s=>s<=7?'Normal':s<=23?'Mild':s<=44?'Moderate':'Severe',
+    catClass:c=>({Normal:'s-ok',Mild:'s-mild',Moderate:'s-warn',Severe:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常老化',Mild:'輕度認知障礙',Moderate:'中度認知障礙',Severe:'重度認知障礙'}[c]),
+    calcScore(vals){return vals.reduce((a,b)=>a+b,0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 7%,#95D5B2 7%,#95D5B2 24%,#F4A261 24%,#F4A261 47%,#E76F51 47%,#E76F51 100%)',
+    barLabels:['0','7','23','44','95'],
+    barPct:s=>Math.max(0,Math.min(100,s/95*100))
+  },
+  ccas:{
+    name:'CCAS', qCount:17, maxScore:69, minScore:0,
+    cats:['Normal','MCI','Severe'],
+    catLabels:['正常老化','輕中度障礙','重度障礙'],
+    catColors:['#52B788','#F4A261','#E76F51'],
+    catRanges:['0–7','8–40','≥ 41'],
+    getCat:s=>s<=7?'Normal':s<=40?'MCI':'Severe',
+    catClass:c=>({Normal:'s-ok',MCI:'s-warn',Severe:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常老化（Normal Ageing）',MCI:'輕中度認知障礙（MCI）',Severe:'重度認知障礙（SCI）'}[c]),
+    calcScore(vals){return vals.reduce((t,v,i)=>t+(i<6?v*2:v),0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 10%,#F4A261 10%,#F4A261 59%,#E76F51 59%,#E76F51 100%)',
+    barLabels:['0','7','40','69'],
+    barPct:s=>Math.max(0,Math.min(100,s/69*100))
+  }
+};
+
+// ── GENERATE QUESTIONS ──────────────────────────────────────────────
+function makeOpts6(name){
+  const opts=[['從不',0],['每月≤1次',1],['每週1次',2],['每週2-3次',3],['每天',4],['每天多次',5]];
+  return `<div class="opts6">${opts.map(([l,v])=>`<label class="opt"><input type="radio" name="${name}" value="${v}"><span class="obox">${l}</span></label>`).join('')}</div>`;
+}
+function makeOpts4(name){
+  const opts=[['從不',0],['每月一次',1],['每週一次',2],['幾乎每天',3]];
+  return `<div class="opts4">${opts.map(([l,v])=>`<label class="opt"><input type="radio" name="${name}" value="${v}"><span class="obox">${l}</span></label>`).join('')}</div>`;
+}
+
+const CADES_Q=[
+  {domain:'空間定向',qs:['在熟悉環境中迷路，或找不到熟悉地點（食碗、門口、睡覺處）','毫無目的地凝視牆壁、角落或空間','卡在家具後面或角落，無法自行脫困','站在門的鉸鏈側而非把手側，無法自行開門','無法認出熟悉的人或動物']},
+  {domain:'社交互動',qs:['主人回家時，問候或迎接的行為減少或消失','主動尋求注意或接觸的行為減少','迴避被觸摸或撫摸','對家庭活動的興趣或參與感降低','對玩耍的興趣減少或消失']},
+  {domain:'睡眠-清醒週期',qs:['夜間不安、清醒或在屋內遊走','白天睡眠時間顯著增加','夜間吠叫、嚎叫或發出不安聲音','睡眠節律顛倒（夜間活躍、白天嗜睡）']},
+  {domain:'室內排泄',qs:['在原本保持乾淨的室內地點排泄','忘記或不再提示需要外出排泄','外出排泄後返家仍在室內排泄','在睡眠或休息區域排泄','排泄後顯得困惑或對排泄行為若無其事']}
+];
+
+const CCAS_Q=[
+  {domain:'定向障礙（計分 ×2）',multi:true,qs:['凝視虛空，彷彿看見不存在的事物','不記得回家的路，或在熟悉環境中迷路','卡在物品或家具後面，無法自行脫困','停在門的錯誤一側（想穿過卻站在鉸鏈側）','對以前會有反應的刺激（如聲音、名字）不再反應','不再發出想外出或如廁的信號']},
+  {domain:'社交互動',multi:false,qs:['無法認出或識別熟悉的人','無法認出或識別熟悉的動物','對人或其他狗表現出更多恐懼或攻擊性']},
+  {domain:'睡眠-清醒週期',multi:false,qs:['在無明顯原因的情況下夜間遊走','在無明顯原因的情況下夜間發出叫聲']},
+  {domain:'學習與記憶',multi:false,qs:['在新的或不適當的地點排尿和/或排便','對以前學會的指令難以做出反應']},
+  {domain:'活動量',multi:false,qs:['比以前更不活躍或不愛玩','出現重複性動作或行為','毫無目的地遊走']},
+  {domain:'焦慮',multi:false,qs:['與飼主分離時，表現出比以前更多的焦慮']}
+];
+
+function buildQHTML(domains,prefix,optsFn,numClass){
+  let html=''; let n=1;
+  domains.forEach(({domain,multi,qs})=>{
+    html+=`<span class="domain-hd ${numClass}">${domain}${multi?'<span class="multi" style="background:#fff;color:#059669;font-size:.7rem;margin-left:.4rem">計分×2</span>':''}</span>`;
+    qs.forEach(q=>{
+      html+=`<div class="qblock"><div class="qtext"><span class="qnum ${numClass}">${n}</span>${q}</div>${optsFn(`${prefix}${n}`)}</div>`;
+      n++;
+    });
+  });
+  return html;
+}
+
+document.getElementById('cades-questions').innerHTML=buildQHTML(CADES_Q,'cd',makeOpts6,'cades');
+document.getElementById('ccas-questions').innerHTML=buildQHTML(CCAS_Q,'ca',makeOpts4,'ccas');
+
+// ── TAB SWITCHING ────────────────────────────────────────────────────
+let activeScale='ccdr';
+function switchTab(scale){
+  activeScale=scale;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===scale));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id===`tab-${scale}`));
+  updateProgress();
+}
+
+// ── PROGRESS BAR ─────────────────────────────────────────────────────
+function getQCount(scale){return SCALES[scale].qCount;}
+function updateProgress(){
+  const scale=activeScale;
+  const prefix=scale==='ccdr'?'q':scale==='cades'?'cd':'ca';
+  const total=getQCount(scale);
+  const done=new Set([...document.querySelectorAll(`#tab-${scale} input[type=radio]:checked`)].map(x=>x.name)).size;
+  const pct=Math.round(done/total*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=done+' / '+total+' 題已作答';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-wrap').style.display='block';
+}
+
+document.addEventListener('change',e=>{
+  if(e.target.type==='radio') updateProgress();
+});
+
+// ── FORM SUBMIT ───────────────────────────────────────────────────────
+document.getElementById('ccdr-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  const dogAge=document.getElementById('dog-age').value;
+  const dogSex=document.getElementById('dog-sex').value;
+  const dogNeuter=document.getElementById('dog-neuter').value;
+  const county=document.getElementById('county').value;
+  if(!dogAge||!dogSex||!dogNeuter||!county){showNotif('⚠️ 請填寫所有必填欄位','#F4A261');return;}
+
+  const scale=activeScale;
+  const prefix=scale==='ccdr'?'q':scale==='cades'?'cd':'ca';
+  const total=getQCount(scale);
+  const vals=[];
+  for(let i=1;i<=total;i++){
+    const sel=document.querySelector(`input[name="${prefix}${i}"]:checked`);
+    if(!sel){
+      showNotif(`⚠️ 第 ${i} 題尚未作答`,'#F4A261');
+      document.querySelector(`input[name="${prefix}${i}"]`).closest('.qblock').scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    vals.push(parseInt(sel.value));
+  }
+
+  const score=SCALES[scale].calcScore(vals);
+  const cat=SCALES[scale].getCat(score);
+  const dogName=document.getElementById('dog-name').value||'您的狗狗';
+
+  const ok=await saveEntry({county,dogAge:parseInt(dogAge),dogSex,dogNeuter,scale,score,cat});
+  if(ok){
+    showResults(scale,score,cat,dogName);
+    setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth'}),100);
+    showNotif('✅ 評估完成！結果已同步至社群統計。','var(--ok)');
+  }
+});
+
+// ── SHOW RESULTS ──────────────────────────────────────────────────────
+function showResults(scale,score,cat,dogName){
+  const S=SCALES[scale];
+  document.getElementById('results').style.display='block';
+  const numEl=document.getElementById('res-score');
+  const lblEl=document.getElementById('res-label');
+  numEl.textContent=score;
+  numEl.className='score-num '+S.catClass(cat);
+  lblEl.className='score-lbl '+S.catClass(cat);
+  lblEl.textContent=S.catLabel(cat);
+  document.getElementById('res-scale-label').textContent=`${S.name} · ${dogName}`;
+  document.getElementById('res-dogname').textContent=`滿分 ${S.maxScore} 分`;
+
+  document.getElementById('res-bar').style.background=S.barCSS;
+  document.getElementById('score-ind').style.left=S.barPct(score)+'%';
+  document.getElementById('res-bar-lbl').innerHTML=S.barLabels.map(l=>`<span>${l}</span>`).join('');
+
+  const recs={
+    ccdr:{
+      Normal:`<div class="rec ok"><h3>🟢 認知功能正常</h3><ul>
+        <li>目前認知功能在正常範圍，繼續保持良好生活習慣！</li>
+        <li>建議每 6–12 個月重新評估，追蹤長期趨勢。</li>
+        <li>持續提供豐富環境刺激：散步、嗅聞遊戲、學習新指令。</li>
+        <li>飲食中補充 Omega-3 及抗氧化劑有助預防退化。</li>
+      </ul></div>`,
+      AtRisk:`<div class="rec warn"><h3>🟡 認知功能有退化風險</h3><ul>
+        <li>建議<strong>盡快安排獸醫評估</strong>，排除其他疾病（甲狀腺、疼痛、視聽障礙）。</li>
+        <li>提高日常認知刺激：嗅覺訓練、益智玩具、社交互動。</li>
+        <li>諮詢獸醫是否適合補充 Omega-3、維生素 E/C。</li>
+        <li>3 個月後重新填寫，若分數增加 ≥4 分應立即就醫。</li>
+      </ul></div>`,
+      CCD:`<div class="rec bad"><h3>🔴 疑似犬認知功能障礙（CCD）</h3><ul>
+        <li><strong>請盡快帶狗狗至獸醫院進行詳細評估。</strong>本量表僅供篩查，確診須由獸醫進行。</li>
+        <li>獸醫可能考慮的治療：司來吉蘭（selegiline）、飲食調整、環境豐富化。</li>
+        <li>排除其他原因：腦腫瘤、代謝疾病、感染、疼痛等。</li>
+        <li>調整家中環境：保持熟悉擺設、夜燈輔助、固定作息。</li>
+      </ul></div>`
+    },
+    cades:{
+      Normal:`<div class="rec ok"><h3>🟢 正常老化</h3><ul>
+        <li>目前行為表現符合正常老化，無明顯認知退化跡象。</li>
+        <li>建議每 6 個月重新使用 CADES 追蹤，早期發現轉換。</li>
+        <li>研究顯示 6 個月內有 42% 正常犬轉為輕度，請保持警覺。</li>
+      </ul></div>`,
+      Mild:`<div class="rec mild"><h3>🟡 輕度認知障礙（Mild CDS）</h3><ul>
+        <li>建議就醫評估，確認是否為 CDS 初期或其他可逆原因。</li>
+        <li>CADES 研究顯示，6 個月內約 24% 輕度犬進展至中度。</li>
+        <li>早期介入（環境豐富化、飲食補充）可延緩進展。</li>
+        <li>建議 3–6 個月後重新評估追蹤變化。</li>
+      </ul></div>`,
+      Moderate:`<div class="rec warn"><h3>🟠 中度認知障礙（Moderate CDS）</h3><ul>
+        <li><strong>建議積極就醫</strong>，評估是否適合藥物治療（如 selegiline）。</li>
+        <li>需調整家中環境以確保狗狗安全（避免撞傷、迷路）。</li>
+        <li>與獸醫討論生活品質評估及長期照護計畫。</li>
+      </ul></div>`,
+      Severe:`<div class="rec bad"><h3>🔴 重度認知障礙（Severe CDS）</h3><ul>
+        <li><strong>請立即諮詢獸醫</strong>，進行完整的神經學評估。</li>
+        <li>重度 CDS 顯著影響狗狗生活品質，需全面照護支持。</li>
+        <li>與獸醫討論安寧照護選項及生活品質評估指標。</li>
+      </ul></div>`
+    },
+    ccas:{
+      Normal:`<div class="rec ok"><h3>🟢 正常老化（Normal Ageing）</h3><ul>
+        <li>目前分數在正常老化範圍（0–7 分），行為表現良好。</li>
+        <li>建議每 6 個月重新評估，尤其是定向障礙與社交互動領域。</li>
+        <li>注意焦慮跡象，老齡犬焦慮增加可能是認知退化的早期信號。</li>
+      </ul></div>`,
+      MCI:`<div class="rec warn"><h3>🟡 輕中度認知障礙（MCI）</h3><ul>
+        <li>建議就醫評估，確認行為改變是否與 CDS 相關。</li>
+        <li>特別關注定向障礙題目的得分情況（佔總分比重最高）。</li>
+        <li>若焦慮題得分高，可請獸醫評估抗焦慮介入的必要性。</li>
+        <li>建議 3 個月後重新填寫 CCAS 追蹤變化。</li>
+      </ul></div>`,
+      Severe:`<div class="rec bad"><h3>🔴 重度認知障礙（SCI）</h3><ul>
+        <li><strong>請盡快就醫</strong>，進行完整評估並排除其他神經疾病。</li>
+        <li>重度障礙需全面的照護計畫，包括環境調整與藥物評估。</li>
+        <li>與獸醫討論生活品質及長期照護方向。</li>
+      </ul></div>`
+    }
+  };
+  document.getElementById('res-rec').innerHTML=recs[scale][cat]||'';
+}
+
+// ── DATA STORAGE (Firebase Firestore) ────────────────────────────────
+async function saveEntry(e){
+  if(!FB_READY){
+    showNotif('⚠️ Firebase 尚未設定，無法儲存資料','#E76F51');
+    return false;
+  }
+  try{
+    await db.collection('submissions').add({
+      county:e.county, dogAge:e.dogAge, dogSex:e.dogSex,
+      dogNeuter:e.dogNeuter, scale:e.scale, score:e.score, cat:e.cat,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return true;
+  }catch(err){
+    console.error('Firestore write error:',err);
+    showNotif('⚠️ 資料儲存失敗，請確認網路連線','#E76F51');
+    return false;
+  }
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────
+const CH={};
+function makeDonut(id,labels,data,colors){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},
+    options:{plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},cutout:'60%'}
+  });
+}
+function makeHist(id,data,colors,minS,maxS){
+  if(CH[id])CH[id].destroy();
+  const bins=10; const w=Math.ceil((maxS-minS)/bins);
+  const counts=Array(bins).fill(0);
+  const bColors=[];
+  data.forEach(s=>{const i=Math.min(bins-1,Math.floor((s-minS)/w));counts[Math.max(0,i)]++;});
+  const labels=counts.map((_,i)=>`${minS+i*w}`);
+  const bgColors=counts.map((_,i)=>{const mid=minS+i*w+w/2;
+    if(mid<(maxS*.08+minS*.92))return colors[0];
+    if(mid<(maxS*.4+minS*.6))return colors[1]||colors[0];
+    return colors[colors.length-1];
+  });
+  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:counts,backgroundColor:bgColors,borderWidth:1}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+}
+
+function drawEmpty(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(CH[id])CH[id].destroy();
+  const ctx=el.getContext('2d');
+  ctx.clearRect(0,0,el.width,el.height);
+  ctx.font='13px Microsoft JhengHei,sans-serif';
+  ctx.fillStyle='#aaa';ctx.textAlign='center';
+  ctx.fillText('填寫評估後顯示',el.offsetWidth/2||100,el.offsetHeight/2||60);
+}
+
+function renderStats(all){
+
+  ['ccdr','cades','ccas'].forEach(scale=>{
+    const d=all.filter(x=>x.scale===scale);
+    const S=SCALES[scale];
+    const n=d.length;
+
+    // Update count badge
+    document.getElementById(`${scale}-cnt`).textContent=n?`${n} 筆`:'尚無資料';
+
+    if(scale==='ccdr'){
+      const nrm=d.filter(x=>x.cat==='Normal').length;
+      const atk=d.filter(x=>x.cat==='AtRisk').length;
+      const ccd=d.filter(x=>x.cat==='CCD').length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('d-total').textContent=n||'—';
+      document.getElementById('d-normal').textContent=n?nrm:'—';
+      document.getElementById('d-atrisk').textContent=n?atk:'—';
+      document.getElementById('d-ccd').textContent=n?ccd:'—';
+      document.getElementById('d-avg').textContent=avg!==null?avg:'—';
+      if(n){makeDonut('ch-d-sev',['正常','高風險','疑似CCD'],[nrm,atk,ccd],S.catColors);makeHist('ch-d-hist',d.map(x=>x.score),S.catColors,16,80);}
+      else{drawEmpty('ch-d-sev');drawEmpty('ch-d-hist');}
+    } else if(scale==='cades'){
+      const ct=cat=>d.filter(x=>x.cat===cat).length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('c-total').textContent=n||'—';
+      document.getElementById('c-normal').textContent=n?ct('Normal'):'—';
+      document.getElementById('c-mild').textContent=n?ct('Mild'):'—';
+      document.getElementById('c-mod').textContent=n?ct('Moderate'):'—';
+      document.getElementById('c-sev').textContent=n?ct('Severe'):'—';
+      if(n){makeDonut('ch-c-sev',['正常','輕度','中度','重度'],[ct('Normal'),ct('Mild'),ct('Moderate'),ct('Severe')],S.catColors);makeHist('ch-c-hist',d.map(x=>x.score),S.catColors,0,95);}
+      else{drawEmpty('ch-c-sev');drawEmpty('ch-c-hist');}
+    } else {
+      const ct=cat=>d.filter(x=>x.cat===cat).length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('a-total').textContent=n||'—';
+      document.getElementById('a-normal').textContent=n?ct('Normal'):'—';
+      document.getElementById('a-mci').textContent=n?ct('MCI'):'—';
+      document.getElementById('a-sev').textContent=n?ct('Severe'):'—';
+      document.getElementById('a-avg').textContent=avg!==null?avg:'—';
+      if(n){makeDonut('ch-a-sev',['正常老化','輕中度障礙','重度障礙'],[ct('Normal'),ct('MCI'),ct('Severe')],S.catColors);makeHist('ch-a-hist',d.map(x=>x.score),S.catColors,0,69);}
+      else{drawEmpty('ch-a-sev');drawEmpty('ch-a-hist');}
+    }
+  });
+}
+
+// ── TOGGLE STATS BLOCKS ───────────────────────────────────────────────
+function toggleStats(scale){
+  const body=document.getElementById(`${scale}-body`);
+  const arr=document.getElementById(`${scale}-arr`);
+  const open=body.classList.toggle('open');
+  arr.style.transform=open?'rotate(180deg)':'';
+  if(open) setTimeout(()=>renderStats(cachedData),50);
+}
+
+// ── ACCORDION ─────────────────────────────────────────────────────────
+function toggle(hd){
+  hd.nextElementSibling.classList.toggle('open');
+  hd.querySelector('.acc-arr').classList.toggle('open');
+}
+
+// ── NOTIFICATION ──────────────────────────────────────────────────────
+function showNotif(msg,bg='var(--pri)'){
+  const n=document.getElementById('notif');
+  n.textContent=msg;n.style.background=bg;
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),3500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+if(FB_READY){
+  // 即時監聽所有使用者的填寫資料
+  db.collection('submissions').onSnapshot(snapshot=>{
+    cachedData=snapshot.docs.map(d=>d.data());
+    renderStats(cachedData);
+    // 更新統計區標題總筆數
+    const total=cachedData.length;
+    document.getElementById('stats-total-badge').textContent=
+      total?`全台灣共 ${total} 筆填寫資料`:'尚無資料';
+  }, err=>console.error('Firestore listener error:',err));
+} else {
+  document.getElementById('firebase-banner').style.display='block';
+  renderStats([]);
+}
+</script>
+</body>
+</html>
