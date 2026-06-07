@@ -1,108 +1,1513 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCDR 狗狗認知障礙分數計算機</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>犬認知功能障礙評估 | CCDR · CADES · CCAS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#5B8FF9;--pri-d:#3A6FD9;--sec:#F7A23E;
+  --ok:#52B788;--warn:#F4A261;--bad:#E76F51;--mild:#95D5B2;
+  --bg:#F5F7FF;--white:#fff;--txt:#2C3E50;--lite:#6C757D;
+  --bdr:#E2E8F0;--shd:0 2px 16px rgba(0,0,0,.07);
+}
+body{font-family:'Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--txt);line-height:1.7;font-size:15px}
+a{color:var(--pri);text-decoration:none}
+nav{background:var(--white);padding:.8rem 2rem;display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:0;z-index:200}
+.nav-logo{font-size:1.1rem;font-weight:800;color:var(--pri)}
+.nav-links{display:flex;gap:1.5rem;list-style:none}
+.nav-links a{color:var(--lite);font-size:.85rem;transition:.2s}.nav-links a:hover{color:var(--pri)}
+.hero{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:3.5rem 2rem;text-align:center}
+.hero-icon{font-size:3.5rem;margin-bottom:.75rem}
+.hero h1{font-size:2.2rem;font-weight:900;margin-bottom:.5rem}
+.hero p{opacity:.9;max-width:580px;margin:0 auto 1.5rem;font-size:1rem}
+.badges{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:.3rem .9rem;border-radius:20px;font-size:.8rem}
+.container{max-width:920px;margin:0 auto;padding:0 1.5rem}
+section{padding:2.5rem 0}
+.sec-title{font-size:1.4rem;font-weight:800;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.card{background:var(--white);border-radius:16px;padding:1.75rem;box-shadow:var(--shd);margin-bottom:1.25rem}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+.info-card{background:var(--white);border-radius:12px;padding:1.25rem;border-left:4px solid var(--pri);box-shadow:var(--shd)}
+.info-card.w{border-left-color:var(--warn)}.info-card.g{border-left-color:var(--ok)}
+.info-card h3{font-size:.9rem;margin-bottom:.4rem;color:var(--pri)}
+.info-card.w h3{color:var(--warn)}.info-card.g h3{color:var(--ok)}
+.info-card p{font-size:.85rem;color:var(--lite)}
+/* TABS */
+.tab-nav{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab-btn{flex:1;min-width:120px;padding:.75rem 1rem;background:var(--white);border:2px solid var(--bdr);
+  border-radius:12px;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;
+  color:var(--lite);transition:.2s;text-align:center}
+.tab-btn:hover{border-color:var(--pri);color:var(--pri)}
+.tab-btn.active{border-color:var(--pri);background:var(--pri);color:#fff}
+.tab-btn .tab-sub{display:block;font-size:.72rem;font-weight:400;opacity:.8;margin-top:.1rem}
+.tab-content{display:none}.tab-content.active{display:block}
+/* SCALE INFO CARD */
+.scale-info{border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;border:1px solid var(--bdr);background:#FAFBFF}
+.scale-info-top{display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;flex-wrap:wrap}
+.scale-badge{display:inline-block;padding:.25rem .8rem;border-radius:20px;font-size:.8rem;font-weight:800;color:#fff}
+.scale-badge.ccdr{background:var(--pri)}.scale-badge.cades{background:#8B5CF6}.scale-badge.ccas{background:#059669}
+.scale-info-meta{font-size:.82rem;color:var(--lite)}
+.pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.pros-cons{grid-template-columns:1fr}}
+.pros-cons ul{padding-left:1.1rem}
+.pros-cons li{font-size:.82rem;color:var(--lite);margin-bottom:.25rem}
+.pros h4{font-size:.85rem;font-weight:800;color:var(--ok);margin-bottom:.4rem}
+.cons h4{font-size:.85rem;font-weight:800;color:var(--bad);margin-bottom:.4rem}
+/* PROGRESS */
+.prog-wrap{position:sticky;top:56px;z-index:190;background:var(--white);
+  padding:.6rem 1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.05);display:none}
+.prog-top{display:flex;justify-content:space-between;font-size:.78rem;color:var(--lite);margin-bottom:.3rem}
+.prog-track{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--pri),var(--sec));border-radius:3px;transition:width .3s;width:0%}
+/* FORM */
+.fsec{background:var(--white);border-radius:16px;padding:1.75rem;box-shadow:var(--shd);margin-bottom:1.25rem}
+.fsec-title{font-size:1rem;font-weight:800;color:var(--pri);margin-bottom:1.25rem;padding-bottom:.75rem;
+  border-bottom:2px solid var(--bdr);display:flex;align-items:center;gap:.5rem}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:.75rem}
+.fg{display:flex;flex-direction:column;gap:.35rem}
+label{font-size:.85rem;font-weight:700;color:var(--txt)}
+.req{color:var(--bad)}
+input,select{padding:.55rem .9rem;border:1.5px solid var(--bdr);border-radius:8px;font-size:.88rem;
+  color:var(--txt);background:var(--white);transition:.2s;width:100%;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(91,143,249,.15)}
+/* DOMAIN HEADER */
+.domain-hd{font-size:.82rem;font-weight:800;color:var(--white);background:var(--pri);
+  padding:.35rem .9rem;border-radius:6px;margin:1rem 0 .5rem;display:inline-block}
+.domain-hd.cades{background:#8B5CF6}.domain-hd.ccas{background:#059669}
+/* QUESTIONS */
+.qblock{margin-bottom:1.1rem;padding:1.1rem;background:#F8FAFE;border-radius:12px;transition:.2s}
+.qblock:hover{background:#EEF4FF}
+.qtext{font-size:.88rem;font-weight:700;margin-bottom:.85rem;display:flex;align-items:flex-start;gap:.5rem}
+.qnum{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;
+  background:var(--pri);color:#fff;border-radius:50%;font-size:.68rem;font-weight:800;flex-shrink:0;margin-top:.15rem}
+.qnum.cades{background:#8B5CF6}.qnum.ccas{background:#059669}
+.multi{display:inline-block;background:var(--sec);color:#fff;font-size:.68rem;padding:.1rem .4rem;
+  border-radius:4px;margin-left:.3rem;font-weight:800;vertical-align:middle}
+/* 5-col options (CCDR) */
+.opts{display:grid;grid-template-columns:repeat(5,1fr);gap:.35rem}
+/* 4-col options (CCAS) */
+.opts4{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem}
+/* 6-col options (CADES) */
+.opts6{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem}
+.opt{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.opt input[type=radio]{display:none}
+.obox{width:100%;padding:.5rem .2rem;border:2px solid var(--bdr);border-radius:8px;text-align:center;
+  font-size:.7rem;color:var(--lite);transition:.2s;cursor:pointer;line-height:1.3;min-height:2.6rem;
+  display:flex;align-items:center;justify-content:center}
+.opt input:checked+.obox{border-color:var(--pri);background:var(--pri);color:#fff;font-weight:700}
+.tab-content[data-scale=cades] .opt input:checked+.obox{border-color:#8B5CF6;background:#8B5CF6}
+.tab-content[data-scale=ccas] .opt input:checked+.obox{border-color:#059669;background:#059669}
+.obox:hover{border-color:var(--pri);color:var(--pri)}
+/* SUBMIT */
+.submit-btn{width:100%;padding:1rem;background:linear-gradient(135deg,var(--pri),var(--pri-d));
+  color:#fff;border:none;border-radius:12px;font-size:1.05rem;font-weight:800;cursor:pointer;
+  transition:.2s;margin-top:.75rem;font-family:inherit}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(91,143,249,.4)}
+/* RESULTS */
+#results{display:none}
+.score-box{text-align:center;padding:1.5rem}
+.score-num{font-size:5rem;font-weight:900;line-height:1;margin-bottom:.25rem}
+.score-lbl{font-size:1.3rem;font-weight:800;margin-bottom:.3rem}
+.s-ok{color:var(--ok)}.s-mild{color:var(--mild)}.s-warn{color:var(--warn)}.s-bad{color:var(--bad)}
+.score-bar-wrap{max-width:500px;margin:1.5rem auto}
+.sbar{height:18px;border-radius:9px;position:relative}
+.sind{position:absolute;top:-7px;width:5px;height:32px;background:var(--txt);border-radius:3px;transform:translateX(-50%)}
+.sbar-lbl{display:flex;justify-content:space-between;margin-top:.4rem;font-size:.75rem;color:var(--lite)}
+.rec{border-radius:12px;padding:1.25rem 1.5rem;margin-top:1rem}
+.rec.ok{background:#E8F5E9;border:1px solid #A5D6A7}.rec.warn{background:#FFF3E0;border:1px solid #FFCC80}
+.rec.bad{background:#FFEBEE;border:1px solid #EF9A9A}.rec.mild{background:#F0FFF4;border:1px solid #B7DFCA}
+.rec h3{margin-bottom:.6rem}.rec ul{padding-left:1.4rem}.rec li{margin-bottom:.35rem;font-size:.88rem}
+/* STATS */
+.stats-block{background:var(--white);border-radius:16px;box-shadow:var(--shd);margin-bottom:1.25rem;overflow:hidden}
+.stats-block-hd{padding:1rem 1.5rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;
+  font-weight:800;font-size:1rem;transition:.2s;user-select:none}
+.stats-block-hd:hover{background:#F8FAFE}
+.stats-block-hd .cnt{margin-left:auto;font-size:.8rem;font-weight:400;color:var(--lite)}
+.stats-block-hd .arr{transition:.3s;font-size:.8rem}
+.stats-block-body{padding:1.25rem;display:none}
+.stats-block-body.open{display:block}
+.mini-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.75rem;margin-bottom:1.25rem}
+.mc{background:var(--bg);border-radius:10px;padding:.9rem;text-align:center}
+.mc-num{font-size:1.6rem;font-weight:900;color:var(--pri)}
+.mc-lbl{font-size:.72rem;color:var(--lite);margin-top:.1rem}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+@media(max-width:650px){.charts-row{grid-template-columns:1fr}}
+.ccard{background:var(--bg);border-radius:10px;padding:1rem}
+.ctitle{font-size:.82rem;font-weight:800;margin-bottom:.75rem}
+/* FUN FACTS */
+.ff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.ff{background:var(--white);border-radius:12px;padding:1.25rem;box-shadow:var(--shd);border-top:4px solid var(--sec)}
+.ff-icon{font-size:1.8rem;margin-bottom:.5rem}.ff h3{font-size:.9rem;font-weight:800;margin-bottom:.4rem}
+.ff p{font-size:.82rem;color:var(--lite)}
+/* ACCORDION */
+.acc-item{border:1px solid var(--bdr);border-radius:10px;margin-bottom:.75rem;overflow:hidden}
+.acc-hd{padding:.9rem 1.1rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;font-size:.9rem;background:var(--white);transition:.2s;user-select:none}
+.acc-hd:hover{background:#F8FAFE}
+.acc-bd{padding:1rem 1.1rem;background:#F8FAFE;font-size:.85rem;color:var(--lite);display:none;line-height:1.8}
+.acc-bd.open{display:block}
+.acc-arr{transition:.3s}.acc-arr.open{transform:rotate(180deg)}
+/* NOTIF */
+.notif{position:fixed;top:76px;right:20px;background:var(--pri);color:#fff;padding:.9rem 1.3rem;
+  border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:1000;opacity:0;
+  transform:translateX(120px);transition:.3s;max-width:280px;font-size:.88rem}
+.notif.show{opacity:1;transform:translateX(0)}
+footer{background:#2C3E50;color:#fff;text-align:center;padding:2rem;margin-top:1rem}
+footer p{opacity:.65;font-size:.82rem;margin-bottom:.25rem}
+.lang-sw{display:flex;gap:.25rem}
+.lang-btn{padding:.25rem .55rem;border:1.5px solid var(--bdr);border-radius:6px;cursor:pointer;
+  font-size:.78rem;font-weight:800;background:var(--white);color:var(--lite);font-family:inherit;transition:.2s}
+.lang-btn.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.lang-btn:hover{border-color:var(--pri);color:var(--pri)}
+@media(max-width:700px){.hero h1{font-size:1.7rem}.score-num{font-size:3.5rem}.opts6{grid-template-columns:repeat(3,1fr)}}
+</style>
 </head>
 <body>
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+<nav>
+  <div class="nav-logo" id="nav-logo">🐾 犬認知評估</div>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <ul class="nav-links">
+      <li><a href="#intro" id="nav-intro">前言</a></li>
+      <li><a href="#form-section" id="nav-start">開始評估</a></li>
+      <li><a href="#stats" id="nav-stats">統計</a></li>
+      <li><a href="#literature" id="nav-lit">文獻</a></li>
+    </ul>
+    <div class="lang-sw">
+      <button class="lang-btn active" onclick="applyLang('zh')">中</button>
+      <button class="lang-btn" onclick="applyLang('en')">EN</button>
+      <button class="lang-btn" onclick="applyLang('ja')">日</button>
+    </div>
+  </div>
+</nav>
+
+<div class="hero" id="hero-section">
+  <div class="hero-icon">🐶</div>
+  <h1 id="hero-title">犬認知功能障礙評估量表</h1>
+  <p id="hero-sub">整合 CCDR · CADES · CCAS 三種經實證驗證的量表<br>幫助飼主及早察覺愛犬的認知退化</p>
+  <div class="badges" id="hero-badges">
+    <span class="badge">🔬 科學實證</span>
+    <span class="badge">⏱ 約 3–5 分鐘</span>
+    <span class="badge">📖 持續更新文獻</span>
+  </div>
+</div>
+
+<div class="container" id="intro">
+  <section>
+    <div class="sec-title">📋 關於這份量表</div>
+    <div class="card" id="intro-card">
+      <p><strong>犬認知功能障礙（Canine Cognitive Dysfunction, CCD）</strong>，俗稱「犬失智症」，是老齡犬常見的神經行為症候群，特徵包括學習與記憶力下降、空間感喪失、社交互動改變及睡眠模式異常，與人類阿茲海默症有高度相似性。</p>
+      <br>
+      <p><strong>盛行率比你想像的高得多。</strong>Neilson et al.（2001）調查超過 180 隻老齡犬，發現 11–12 歲犬隻中有 <strong>28%</strong> 出現至少一種 CDS 症狀，15–16 歲時更高達 <strong>68%</strong>。Azkona et al.（2009）的西班牙研究顯示，10 歲以上老齡犬約 <strong>22%</strong> 出現認知退化相符的行為改變。Salvin et al.（2011）以 957 隻老齡犬估計整體盛行率約 12%，14 歲以上達 31%。</p>
+      <br>
+      <p>美國「<strong>犬齡研究計畫（Dog Aging Project）</strong>」自 2018 年起追蹤逾 5 萬隻犬隻，確認認知退化與年齡、體型、活動量、社交環境顯著相關（Bray et al., 2020, 2022）。近年研究也發現 CCD 犬隻腦脊髓液中 β-澱粉樣蛋白與 tau 蛋白堆積與人類阿茲海默症高度相似，強化了其轉譯醫學地位（Schütt et al., 2015; Head et al., 2019）。</p>
+      <br>
+      <p>儘管如此，仍有高達 <strong>85% 的潛在患犬未被確診</strong>（Salvin et al., 2010）。<strong>本頁整合三種量表，適用於 8 歲以上狗狗</strong>，結合獸醫診斷，可作為 CCD 的篩查與縱向追蹤工具。</p>
+    </div>
+    <div class="info-grid" id="intro-grid"></div>
+  </section>
+</div>
+
+<div class="prog-wrap" id="prog-wrap">
+  <div class="prog-top"><span id="prog-text">0 / 0 題已作答</span><span id="prog-pct">0%</span></div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+</div>
+
+<div class="container" id="form-section">
+  <section>
+    <div class="sec-title">📝 開始評估</div>
+    <form id="ccdr-form" novalidate>
+
+      <!-- Shared dog info -->
+      <div class="fsec">
+        <div class="fsec-title">🐕 狗狗基本資料</div>
+        <div class="frow">
+          <div class="fg"><label for="dog-name">狗狗名字（選填）</label><input type="text" id="dog-name" placeholder="例：小黑"></div>
+          <div class="fg">
+            <label for="dog-age">年齡 <span class="req">*</span></label>
+            <select id="dog-age" required>
+              <option value="">請選擇</option>
+              <option value="8">8 歲</option><option value="9">9 歲</option><option value="10">10 歲</option>
+              <option value="11">11 歲</option><option value="12">12 歲</option><option value="13">13 歲</option>
+              <option value="14">14 歲</option><option value="15">15 歲</option><option value="16">16 歲以上</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-sex">性別 <span class="req">*</span></label>
+            <select id="dog-sex" required>
+              <option value="">請選擇</option><option value="公">公</option><option value="母">母</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-neuter">絕育狀態 <span class="req">*</span></label>
+            <select id="dog-neuter" required>
+              <option value="">請選擇</option><option value="已絕育">已絕育</option><option value="未絕育">未絕育</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="dog-breed">品種（選填）</label>
+            <input type="text" id="dog-breed" placeholder="例：拉布拉多">
+          </div>
+        </div>
+      </div>
+
+      <div class="fsec" style="padding-bottom:1rem">
+        <div class="fsec-title">📍 居住縣市 <span class="req">*</span></div>
+        <div style="max-width:260px">
+          <select id="county" required>
+            <option value="">請選擇縣市</option>
+            <option>台北市</option><option>新北市</option><option>基隆市</option><option>桃園市</option>
+            <option>新竹市</option><option>新竹縣</option><option>苗栗縣</option><option>台中市</option>
+            <option>南投縣</option><option>彰化縣</option><option>雲林縣</option><option>嘉義市</option>
+            <option>嘉義縣</option><option>台南市</option><option>高雄市</option><option>屏東縣</option>
+            <option>宜蘭縣</option><option>花蓮縣</option><option>台東縣</option><option>澎湖縣</option>
+            <option>金門縣</option><option>連江縣</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tab Nav -->
+      <div class="tab-nav">
+        <button type="button" class="tab-btn active" data-tab="ccdr" onclick="switchTab('ccdr')">
+          CCDR<span class="tab-sub">Salvin et al. 2011 · 13 題</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="cades" onclick="switchTab('cades')">
+          CADES<span class="tab-sub">Madari et al. 2015 · 19 題</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="ccas" onclick="switchTab('ccas')">
+          CCAS<span class="tab-sub">González-Martínez 2022 · 17 題</span>
+        </button>
+      </div>
+
+      <!-- ═══ CCDR TAB ═══ -->
+      <div id="tab-ccdr" class="tab-content active" data-scale="ccdr">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge ccdr">CCDR</span>
+            <span class="scale-info-meta">Salvin et al. (2011) · The Veterinary Journal · 13 題 · 最高 80 分 · 閾值：&lt;40 正常 / 40–49 高風險 / ≥50 疑似 CCD</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>大型樣本驗證（n = 957），整體診斷準確率 98.9%</li>
+              <li>心理測量學驗證完整（Cronbach α = 0.86）</li>
+              <li>包含「嚴重程度敏感題」（×2、×3 加權），提升鑑別力</li>
+              <li>適合長期縱向追蹤（≥4 分變化即具臨床意義）</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>近年文獻指出對<strong>早期／輕微認知障礙（MCI）敏感度較低</strong></li>
+              <li>部分題目需回顧 6 個月變化，可能有回憶偏差</li>
+              <li>僅分三級（正常／高風險／CCD），不區分輕中重度</li>
+            </ul></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsec-title" id="ccdr-s1-title">📊 第一部分：行為頻率（近期）</div>
+          <p style="font-size:.83rem;color:var(--lite);margin-bottom:1rem" id="ccdr-s1-desc">以下行為出現的頻率：</p>
+          <div id="ccdr-questions-s1"></div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-title" id="ccdr-s2-title">📈 第二部分：行為變化（與 6 個月前相比）</div>
+          <div id="ccdr-questions-s2"></div>
+        </div>
+      </div><!-- end CCDR tab -->
+
+      <!-- ═══ CADES TAB ═══ -->
+      <div id="tab-cades" class="tab-content" data-scale="cades">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge cades">CADES</span>
+            <span class="scale-info-meta">Madari et al. (2015) · Applied Animal Behaviour Science · 19 題 · 最高 95 分 · 閾值：≤7 正常 / 8–23 輕度 / 24–44 中度 / ≥45 重度</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>細緻的<strong>四級嚴重程度</strong>分類（正常／輕度／中度／重度）</li>
+              <li>能有效追蹤「正常→輕度」及「輕度→中度」的疾病進展</li>
+              <li>6 個月轉換率研究：正常轉輕度 71.45%，輕度轉中度 50%（12 個月）</li>
+              <li>適合<strong>縱向監測</strong>治療反應與疾病進展</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>題目較多（19 題），填寫時間稍長</li>
+              <li>原始驗證樣本規模相對較小</li>
+              <li>以 4 個行為領域為主，未包含焦慮評估</li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-title" style="color:#8B5CF6">🟣 CADES 評量（0 = 從不 → 5 = 每天多次）</div>
+          <div id="cades-questions"></div>
+        </div>
+      </div><!-- end CADES tab -->
+
+      <!-- ═══ CCAS TAB ═══ -->
+      <div id="tab-ccas" class="tab-content" data-scale="ccas">
+        <div class="scale-info">
+          <div class="scale-info-top">
+            <span class="scale-badge ccas">CCAS</span>
+            <span class="scale-info-meta">González-Martínez et al. (2022) · 17 題 · 最高 69 分 · 閾值：0–7 正常 / 8–40 輕中度障礙 / 41–69 重度障礙</span>
+          </div>
+          <div class="pros-cons">
+            <div class="pros"><h4>✅ 優點</h4><ul>
+              <li>以 <strong>DISHAA 問卷</strong>為骨幹擴充設計，包含<strong>焦慮（Anxiety）</strong>領域</li>
+              <li>明確要求回顧「過去 6 個月」，標準化時間框架</li>
+              <li><strong>定向障礙項目計分 ×2</strong>，強調空間認知的臨床重要性</li>
+              <li>涵蓋 6 個行為領域，評估面向最全面</li>
+            </ul></div>
+            <div class="cons"><h4>❌ 限制</h4><ul>
+              <li>輕度與中度認知障礙合併為一區間（8–40），分辨度有限</li>
+              <li>焦慮領域僅有 1 題，可能不足以全面評估</li>
+              <li>定向障礙 ×2 加權可能使分數快速上升，影響解讀</li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-title" style="color:#059669">🟢 CCAS 評量（回顧過去 6 個月，0 = 從不 → 3 = 幾乎每天）</div>
+          <div id="ccas-questions"></div>
+        </div>
+      </div><!-- end CCAS tab -->
+
+      <button type="submit" class="submit-btn" id="submit-btn">🔍 計算評估結果</button>
+    </form>
+  </section>
+</div>
+
+<!-- RESULTS -->
+<div class="container" id="results">
+  <section>
+    <div class="sec-title">📊 評估結果</div>
+    <div class="card">
+      <div class="score-box">
+        <div style="font-size:.85rem;color:var(--lite);margin-bottom:.25rem" id="res-scale-label"></div>
+        <div class="score-num" id="res-score">—</div>
+        <div class="score-lbl" id="res-label">—</div>
+        <div id="res-dogname" style="color:var(--lite);font-size:.88rem"></div>
+        <div class="score-bar-wrap">
+          <div class="sbar" id="res-bar"><div class="sind" id="score-ind"></div></div>
+          <div class="sbar-lbl" id="res-bar-lbl"></div>
+        </div>
+      </div>
+      <div id="res-rec"></div>
+    </div>
+    <!-- 歷史趨勢 -->
+    <div id="history-section" style="display:none;margin-top:1.25rem">
+      <div style="font-size:.95rem;font-weight:800;margin-bottom:.75rem">📈 追蹤紀錄（本裝置）</div>
+      <div style="background:#F8FAFE;border-radius:12px;padding:1.1rem">
+        <div id="history-info" style="font-size:.82rem;color:var(--lite);margin-bottom:.75rem"></div>
+        <canvas id="ch-history" height="130"></canvas>
+      </div>
+      <div style="font-size:.75rem;color:var(--lite);margin-top:.5rem;text-align:right">
+        追蹤碼：<code id="dog-id-display" style="background:#eee;padding:.1rem .4rem;border-radius:4px"></code>
+        （同一台裝置下次填寫會自動連結）
+      </div>
     </div>
 
-    <main class="glass-container">
-        <header>
-            <h1>CCDR 狗狗認知障礙分數計算機</h1>
-            <p>透過 13 個簡單的問題，快速評估狗狗是否有認知障礙（CCD）的風險。</p>
-        </header>
+    <div style="text-align:center;margin-top:.75rem">
+      <button onclick="scrollTo({top:document.getElementById('stats').offsetTop-70,behavior:'smooth'})"
+        style="background:var(--pri);color:#fff;border:none;padding:.6rem 1.5rem;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;font-family:inherit">
+        👇 查看社群統計
+      </button>
+    </div>
+  </section>
+</div>
 
-        <form id="ccdrForm">
-            <!-- Profile Section -->
-            <section class="form-section profile-section">
-                <h2>飼主與狗狗基本資料</h2>
-                <div class="input-group">
-                    <label for="dogAge">狗狗年齡 (歲)</label>
-                    <input type="number" id="dogAge" name="dogAge" min="0" max="30" required placeholder="例如：12">
-                </div>
-                <div class="input-group">
-                    <label for="ownerCity">居住縣市</label>
-                    <select id="ownerCity" name="ownerCity" required>
-                        <option value="" disabled selected>請選擇縣市</option>
-                        <option value="基隆市">基隆市</option>
-                        <option value="台北市">台北市</option>
-                        <option value="新北市">新北市</option>
-                        <option value="桃園市">桃園市</option>
-                        <option value="新竹市">新竹市</option>
-                        <option value="新竹縣">新竹縣</option>
-                        <option value="苗栗縣">苗栗縣</option>
-                        <option value="台中市">台中市</option>
-                        <option value="彰化縣">彰化縣</option>
-                        <option value="南投縣">南投縣</option>
-                        <option value="雲林縣">雲林縣</option>
-                        <option value="嘉義市">嘉義市</option>
-                        <option value="嘉義縣">嘉義縣</option>
-                        <option value="台南市">台南市</option>
-                        <option value="高雄市">高雄市</option>
-                        <option value="屏東縣">屏東縣</option>
-                        <option value="宜蘭縣">宜蘭縣</option>
-                        <option value="花蓮縣">花蓮縣</option>
-                        <option value="台東縣">台東縣</option>
-                        <option value="澎湖縣">澎湖縣</option>
-                        <option value="金門縣">金門縣</option>
-                        <option value="連江縣">連江縣</option>
-                    </select>
-                </div>
-            </section>
+<!-- STATS -->
+<div class="container" id="stats">
+  <section>
+    <div class="sec-title">📈 台灣飼主社群統計</div>
 
-            <!-- Questionnaire Section -->
-            <section class="form-section questions-section">
-                <h2>行為評估問卷</h2>
-                <p class="section-desc">請根據狗狗過去六個月內的行為頻率與改變來作答。</p>
-                
-                <div id="questionsContainer"></div>
-            </section>
+    <!-- Firebase 未設定提示 -->
+    <div id="firebase-banner" style="display:none;background:#FFF3E0;border:1px solid #FFCC80;
+      border-radius:12px;padding:1.1rem 1.4rem;margin-bottom:1.25rem;font-size:.88rem">
+      ⚠️ <strong>Firebase 尚未設定</strong> — 統計目前無法顯示跨用戶資料。
+      請依照頁面底部的設定步驟完成設定後重新上傳 index.html。
+    </div>
 
-            <button type="submit" class="submit-btn">計算分數</button>
-        </form>
+    <p style="font-size:.83rem;color:var(--lite);margin-bottom:.75rem">
+      資料來自所有使用本工具的飼主（即時同步，完全匿名）。
+    </p>
+    <p id="stats-total-badge" style="font-size:.88rem;font-weight:700;color:var(--pri);margin-bottom:1.25rem">載入中…</p>
 
-        <!-- Results Panel (Hidden initially) -->
-        <div id="resultsPanel" class="results-panel hidden">
-            <button id="closeResults" class="close-btn">&times;</button>
-            <div class="results-header">
-                <h2>評估結果</h2>
-                <div class="score-display">
-                    <span id="totalScore">0</span> 分
-                </div>
-                <div id="riskLevel" class="risk-level"></div>
-                <p id="riskDescription"></p>
-            </div>
-
-            <div class="stats-section">
-                <h3>數據統計與分布</h3>
-                <p class="stats-desc">來看看與您狗狗年齡相近或同地區的毛孩情況吧！</p>
-                
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <canvas id="severityChart"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="ageChart"></canvas>
-                    </div>
-                    <div class="chart-container wide">
-                        <canvas id="regionChart"></canvas>
-                    </div>
-                </div>
-            </div>
+    <!-- CCDR block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('ccdr')">
+        <span style="color:var(--pri)">■</span> CCDR 統計
+        <span class="cnt" id="ccdr-cnt">尚無資料</span>
+        <span class="arr" id="ccdr-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="ccdr-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="d-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="d-normal">—</div><div class="mc-lbl">正常 &lt;40</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="d-atrisk">—</div><div class="mc-lbl">高風險 40–49</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="d-ccd">—</div><div class="mc-lbl">疑似CCD ≥50</div></div>
+          <div class="mc"><div class="mc-num" id="d-avg">—</div><div class="mc-lbl">平均分數</div></div>
         </div>
-    </main>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-d-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-d-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
+    <!-- CADES block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('cades')">
+        <span style="color:#8B5CF6">■</span> CADES 統計
+        <span class="cnt" id="cades-cnt">尚無資料</span>
+        <span class="arr" id="cades-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="cades-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="c-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="c-normal">—</div><div class="mc-lbl">正常 ≤7</div></div>
+          <div class="mc"><div class="mc-num s-mild" id="c-mild">—</div><div class="mc-lbl">輕度 8–23</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="c-mod">—</div><div class="mc-lbl">中度 24–44</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="c-sev">—</div><div class="mc-lbl">重度 ≥45</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-c-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-c-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CCAS block -->
+    <div class="stats-block">
+      <div class="stats-block-hd" onclick="toggleStats('ccas')">
+        <span style="color:#059669">■</span> CCAS 統計
+        <span class="cnt" id="ccas-cnt">尚無資料</span>
+        <span class="arr" id="ccas-arr">▼</span>
+      </div>
+      <div class="stats-block-body" id="ccas-body">
+        <div class="mini-cards">
+          <div class="mc"><div class="mc-num" id="a-total">—</div><div class="mc-lbl">總填寫</div></div>
+          <div class="mc"><div class="mc-num s-ok" id="a-normal">—</div><div class="mc-lbl">正常 0–7</div></div>
+          <div class="mc"><div class="mc-num s-warn" id="a-mci">—</div><div class="mc-lbl">輕中度 8–40</div></div>
+          <div class="mc"><div class="mc-num s-bad" id="a-sev">—</div><div class="mc-lbl">重度 ≥41</div></div>
+          <div class="mc"><div class="mc-num" id="a-avg">—</div><div class="mc-lbl">平均分數</div></div>
+        </div>
+        <div class="charts-row">
+          <div class="ccard"><div class="ctitle">嚴重程度分布</div><canvas id="ch-a-sev" height="200"></canvas></div>
+          <div class="ccard"><div class="ctitle">分數分布</div><canvas id="ch-a-hist" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FUN FACTS -->
+<div class="container">
+  <section>
+    <div class="sec-title">🔬 關於犬認知障礙的研究發現</div>
+    <div class="ff-grid">
+      <div class="ff"><div class="ff-icon">📈</div><h3>隨年齡急劇上升</h3><p>8–10 歲盛行率約 4.4%，12–14 歲躍升至 18.6%，14 歲以上更達 31%（Salvin et al., 2011）。Neilson et al.（2001）估計 15–16 歲犬有 68% 出現認知衰退症狀。</p></div>
+      <div class="ff"><div class="ff-icon">🎾</div><h3>工作犬患病率較低</h3><p>導盲犬、搜救犬等工作犬因長期維持認知任務，腦神經連結更活躍，CCD 發生率顯著低於一般伴侶犬，支持「認知保留（cognitive reserve）」理論。</p></div>
+      <div class="ff"><div class="ff-icon">🧠</div><h3>與阿茲海默症高度相似</h3><p>CCD 在神經病理（β-澱粉樣蛋白、tau 蛋白沉積）、臨床表現及藥物反應上均與人類阿茲海默症高度相似，是目前最重要的自然動物模型之一。</p></div>
+      <div class="ff"><div class="ff-icon">🔍</div><h3>85% 的病例被忽略</h3><p>研究顯示高達 85% 的 CCD 潛在患犬從未被獸醫確診，主要原因是飼主誤以為症狀屬於正常老化（Salvin et al., 2010）。</p></div>
+      <div class="ff"><div class="ff-icon">🥦</div><h3>飲食介入有效</h3><p>富含抗氧化劑（維生素 E、C）、L-肉鹼及 Omega-3 脂肪酸的飲食可幫助維護認知功能，且愈早開始、效果愈佳（Landsberg, 2005）。</p></div>
+      <div class="ff"><div class="ff-icon">🏃</div><h3>豐富化環境是最佳預防</h3><p>日常散步、嗅聞遊戲、學習新技能、社交互動等「大腦體操」，縱向研究支持持續的認知刺激可延緩退化（Dog Aging Project, 2022）。</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- LITERATURE -->
+<div class="container" id="literature">
+  <section>
+    <div class="sec-title">📚 文獻摘要</div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CCDR — Salvin et al. (2011) The Veterinary Journal <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">大樣本（n=957）資料驅動研究，建立 13 題 CCDR 量表。診斷準確率 98.9%（PPV 77.8%，NPV 99.3%），Cronbach α=0.86，再測信度 r=0.73。分三級：&lt;40 正常、40–49 高風險、≥50 疑似 CCD。包含嚴重程度敏感題（×2、×3 加權）。近年文獻指出對早期 MCI 敏感度不足，但仍是監測首選工具。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CADES — Madari et al. (2015) Applied Animal Behaviour Science <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">19 題，4 個行為領域（空間定向、社交互動、睡眠節律、室內排泄），每題 0–5 分，最高 95 分。分四級：≤7 正常、8–23 輕度、24–44 中度、≥45 重度。6 個月追蹤研究發現：正常→輕度轉換率 42%（6 個月）/ 71.45%（12 個月）；輕度→中度 24%（6 個月）/ 50%（12 個月）。適合縱向監測疾病進展與治療反應。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">CCAS — González-Martínez et al. (2022) <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">17 題，6 個領域（定向障礙×2、社交互動、睡眠節律、學習與記憶、活動量、焦慮），每題 0–3 分。定向障礙 6 題計分 ×2，最高 69 分。分三級：0–7 正常老化、8–40 輕中度認知障礙（MCI）、41–69 重度認知障礙。以 DISHAA 問卷為骨幹擴充設計，為目前唯一含焦慮領域的標準化 CCD 量表。</div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-hd" onclick="toggle(this)">盛行率與流行病學 <span class="acc-arr">▼</span></div>
+      <div class="acc-bd">Neilson et al. (2001)：11–12 歲 28%，15–16 歲 68% 出現 CDS 症狀。Azkona et al. (2009)：10 歲以上約 22%。Salvin et al. (2011)：8 歲以上整體 12%，14 歲以上 31%，且高達 85% 未被確診。Dog Aging Project (Bray et al., 2020, 2022)：追蹤 5 萬隻以上犬隻，確認認知退化與年齡、體型、社交環境顯著相關。</div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <p>🐾 本工具僅供參考，不能取代專業獸醫診斷。若擔心愛犬認知狀況，請盡快諮詢動物醫院。</p>
+  <p>資料來源：Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022</p>
+  <p style="margin-top:.5rem;opacity:.55">填寫資料會匿名同步至 Firebase Firestore，用於跨用戶統計分析。</p>
+</footer>
+<div class="notif" id="notif"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// 🔧 Firebase 設定：將下方六個值換成你在 Firebase Console 取得的設定
+// ══════════════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyBTG4gwp_t2Sf5sJYhG-PTAbPrWS2N58pI",
+  authDomain:        "cdscalculator-9ddcf.firebaseapp.com",
+  projectId:         "cdscalculator-9ddcf",
+  storageBucket:     "cdscalculator-9ddcf.firebasestorage.app",
+  messagingSenderId: "1016584454839",
+  appId:             "1:1016584454839:web:798def7704a7cb969e4332"
+};
+// ══════════════════════════════════════════════════════════════════════
+
+const FB_READY = !Object.values(firebaseConfig).some(v=>v==="FILL_IN");
+let db = null;
+let cachedData = [];
+if(FB_READY){
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+}
+
+// ── SCALE DEFINITIONS ────────────────────────────────────────────────
+const SCALES = {
+  ccdr:{
+    name:'CCDR', qCount:13, maxScore:80, minScore:16,
+    cats:['Normal','AtRisk','CCD'],
+    catLabels:['正常','高風險','疑似CCD'],
+    catColors:['#52B788','#F4A261','#E76F51'],
+    catRanges:['< 40','40–49','≥ 50'],
+    getCat:s=>s<40?'Normal':s<50?'AtRisk':'CCD',
+    catClass:c=>({Normal:'s-ok',AtRisk:'s-warn',CCD:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常（Normal）',AtRisk:'高風險（At Risk）',CCD:'疑似 CCD（Canine Cognitive Dysfunction）'}[c]),
+    calcScore(vals){return vals.reduce((t,v,i)=>t+(i===10?v*2:i===11?v*3:v),0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 37%,#F4A261 37%,#F4A261 52%,#E76F51 52%,#E76F51 100%)',
+    barLabels:['16','40','50','80'],
+    barPct:s=>Math.max(0,Math.min(100,(s-16)/64*100))
+  },
+  cades:{
+    name:'CADES', qCount:19, maxScore:95, minScore:0,
+    cats:['Normal','Mild','Moderate','Severe'],
+    catLabels:['正常','輕度','中度','重度'],
+    catColors:['#52B788','#95D5B2','#F4A261','#E76F51'],
+    catRanges:['0–7','8–23','24–44','≥ 45'],
+    getCat:s=>s<=7?'Normal':s<=23?'Mild':s<=44?'Moderate':'Severe',
+    catClass:c=>({Normal:'s-ok',Mild:'s-mild',Moderate:'s-warn',Severe:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常老化',Mild:'輕度認知障礙',Moderate:'中度認知障礙',Severe:'重度認知障礙'}[c]),
+    calcScore(vals){return vals.reduce((a,b)=>a+b,0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 7%,#95D5B2 7%,#95D5B2 24%,#F4A261 24%,#F4A261 47%,#E76F51 47%,#E76F51 100%)',
+    barLabels:['0','7','23','44','95'],
+    barPct:s=>Math.max(0,Math.min(100,s/95*100))
+  },
+  ccas:{
+    name:'CCAS', qCount:17, maxScore:69, minScore:0,
+    cats:['Normal','MCI','Severe'],
+    catLabels:['正常老化','輕中度障礙','重度障礙'],
+    catColors:['#52B788','#F4A261','#E76F51'],
+    catRanges:['0–7','8–40','≥ 41'],
+    getCat:s=>s<=7?'Normal':s<=40?'MCI':'Severe',
+    catClass:c=>({Normal:'s-ok',MCI:'s-warn',Severe:'s-bad'}[c]),
+    catLabel:c=>({Normal:'正常老化（Normal Ageing）',MCI:'輕中度認知障礙（MCI）',Severe:'重度認知障礙（SCI）'}[c]),
+    calcScore(vals){return vals.reduce((t,v,i)=>t+(i<6?v*2:v),0)},
+    barCSS:'linear-gradient(to right,#52B788 0%,#52B788 10%,#F4A261 10%,#F4A261 59%,#E76F51 59%,#E76F51 100%)',
+    barLabels:['0','7','40','69'],
+    barPct:s=>Math.max(0,Math.min(100,s/69*100))
+  }
+};
+
+// ── GENERATE QUESTIONS ──────────────────────────────────────────────
+function makeOpts6(name){
+  const opts=[['從不',0],['每月≤1次',1],['每週1次',2],['每週2-3次',3],['每天',4],['每天多次',5]];
+  return `<div class="opts6">${opts.map(([l,v])=>`<label class="opt"><input type="radio" name="${name}" value="${v}"><span class="obox">${l}</span></label>`).join('')}</div>`;
+}
+function makeOpts4(name){
+  const opts=[['從不',0],['每月一次',1],['每週一次',2],['幾乎每天',3]];
+  return `<div class="opts4">${opts.map(([l,v])=>`<label class="opt"><input type="radio" name="${name}" value="${v}"><span class="obox">${l}</span></label>`).join('')}</div>`;
+}
+
+const CADES_Q=[
+  {domain:'空間定向',qs:['在熟悉環境中迷路，或找不到熟悉地點（食碗、門口、睡覺處）','毫無目的地凝視牆壁、角落或空間','卡在家具後面或角落，無法自行脫困','站在門的鉸鏈側而非把手側，無法自行開門','無法認出熟悉的人或動物']},
+  {domain:'社交互動',qs:['主人回家時，問候或迎接的行為減少或消失','主動尋求注意或接觸的行為減少','迴避被觸摸或撫摸','對家庭活動的興趣或參與感降低','對玩耍的興趣減少或消失']},
+  {domain:'睡眠-清醒週期',qs:['夜間不安、清醒或在屋內遊走','白天睡眠時間顯著增加','夜間吠叫、嚎叫或發出不安聲音','睡眠節律顛倒（夜間活躍、白天嗜睡）']},
+  {domain:'室內排泄',qs:['在原本保持乾淨的室內地點排泄','忘記或不再提示需要外出排泄','外出排泄後返家仍在室內排泄','在睡眠或休息區域排泄','排泄後顯得困惑或對排泄行為若無其事']}
+];
+
+const CCAS_Q=[
+  {domain:'定向障礙（計分 ×2）',multi:true,qs:['凝視虛空，彷彿看見不存在的事物','不記得回家的路，或在熟悉環境中迷路','卡在物品或家具後面，無法自行脫困','停在門的錯誤一側（想穿過卻站在鉸鏈側）','對以前會有反應的刺激（如聲音、名字）不再反應','不再發出想外出或如廁的信號']},
+  {domain:'社交互動',multi:false,qs:['無法認出或識別熟悉的人','無法認出或識別熟悉的動物','對人或其他狗表現出更多恐懼或攻擊性']},
+  {domain:'睡眠-清醒週期',multi:false,qs:['在無明顯原因的情況下夜間遊走','在無明顯原因的情況下夜間發出叫聲']},
+  {domain:'學習與記憶',multi:false,qs:['在新的或不適當的地點排尿和/或排便','對以前學會的指令難以做出反應']},
+  {domain:'活動量',multi:false,qs:['比以前更不活躍或不愛玩','出現重複性動作或行為','毫無目的地遊走']},
+  {domain:'焦慮',multi:false,qs:['與飼主分離時，表現出比以前更多的焦慮']}
+];
+
+function buildQHTML(domains,prefix,optsFn,numClass){
+  let html=''; let n=1;
+  domains.forEach(({domain,multi,qs})=>{
+    html+=`<span class="domain-hd ${numClass}">${domain}${multi?'<span class="multi" style="background:#fff;color:#059669;font-size:.7rem;margin-left:.4rem">計分×2</span>':''}</span>`;
+    qs.forEach(q=>{
+      html+=`<div class="qblock"><div class="qtext"><span class="qnum ${numClass}">${n}</span>${q}</div>${optsFn(`${prefix}${n}`)}</div>`;
+      n++;
+    });
+  });
+  return html;
+}
+
+document.getElementById('cades-questions').innerHTML=buildQHTML(CADES_Q,'cd',makeOpts6,'cades');
+document.getElementById('ccas-questions').innerHTML=buildQHTML(CCAS_Q,'ca',makeOpts4,'ccas');
+
+// ── TAB SWITCHING ────────────────────────────────────────────────────
+let activeScale='ccdr';
+function switchTab(scale){
+  activeScale=scale;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===scale));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id===`tab-${scale}`));
+  updateProgress();
+}
+
+// ── PROGRESS BAR ─────────────────────────────────────────────────────
+function getQCount(scale){return SCALES[scale].qCount;}
+function updateProgress(){
+  const scale=activeScale;
+  const prefix=scale==='ccdr'?'q':scale==='cades'?'cd':'ca';
+  const total=getQCount(scale);
+  const done=new Set([...document.querySelectorAll(`#tab-${scale} input[type=radio]:checked`)].map(x=>x.name)).size;
+  const pct=Math.round(done/total*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=done+' / '+total+' 題已作答';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-wrap').style.display='block';
+}
+
+document.addEventListener('change',e=>{
+  if(e.target.type==='radio') updateProgress();
+});
+
+// ── FORM SUBMIT ───────────────────────────────────────────────────────
+document.getElementById('ccdr-form').addEventListener('submit',async function(e){
+  e.preventDefault();
+  const dogAge=document.getElementById('dog-age').value;
+  const dogSex=document.getElementById('dog-sex').value;
+  const dogNeuter=document.getElementById('dog-neuter').value;
+  const county=document.getElementById('county').value;
+  if(!dogAge||!dogSex||!dogNeuter||!county){showNotif('⚠️ 請填寫所有必填欄位','#F4A261');return;}
+
+  const scale=activeScale;
+  const prefix=scale==='ccdr'?'q':scale==='cades'?'cd':'ca';
+  const total=getQCount(scale);
+  const vals=[];
+  for(let i=1;i<=total;i++){
+    const sel=document.querySelector(`input[name="${prefix}${i}"]:checked`);
+    if(!sel){
+      showNotif(`⚠️ 第 ${i} 題尚未作答`,'#F4A261');
+      document.querySelector(`input[name="${prefix}${i}"]`).closest('.qblock').scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    vals.push(parseInt(sel.value));
+  }
+
+  const score=SCALES[scale].calcScore(vals);
+  const cat=SCALES[scale].getCat(score);
+  const dogName=document.getElementById('dog-name').value||'您的狗狗';
+
+  const dogId=getDogId();
+  const ok=await saveEntry({dogId,county,dogAge:parseInt(dogAge),dogSex,dogNeuter,scale,score,cat});
+  if(ok){
+    showResults(scale,score,cat,dogName);
+    showHistory(dogId,scale,score);
+    setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth'}),100);
+    showNotif('✅ 評估完成！結果已同步至社群統計。','var(--ok)');
+  }
+});
+
+// ── SHOW RESULTS ──────────────────────────────────────────────────────
+function showResults(scale,score,cat,dogName){
+  const S=SCALES[scale];
+  document.getElementById('results').style.display='block';
+  const numEl=document.getElementById('res-score');
+  const lblEl=document.getElementById('res-label');
+  numEl.textContent=score;
+  numEl.className='score-num '+S.catClass(cat);
+  lblEl.className='score-lbl '+S.catClass(cat);
+  lblEl.textContent=S.catLabel(cat);
+  document.getElementById('res-scale-label').textContent=`${S.name} · ${dogName}`;
+  document.getElementById('res-dogname').textContent=`滿分 ${S.maxScore} 分`;
+
+  document.getElementById('res-bar').style.background=S.barCSS;
+  document.getElementById('score-ind').style.left=S.barPct(score)+'%';
+  document.getElementById('res-bar-lbl').innerHTML=S.barLabels.map(l=>`<span>${l}</span>`).join('');
+
+  const recs={
+    ccdr:{
+      Normal:`<div class="rec ok"><h3>🟢 認知功能正常</h3><ul>
+        <li>目前認知功能在正常範圍，繼續保持良好生活習慣！</li>
+        <li>建議每 6–12 個月重新評估，追蹤長期趨勢。</li>
+        <li>持續提供豐富環境刺激：散步、嗅聞遊戲、學習新指令。</li>
+        <li>飲食中補充 Omega-3 及抗氧化劑有助預防退化。</li>
+      </ul></div>`,
+      AtRisk:`<div class="rec warn"><h3>🟡 認知功能有退化風險</h3><ul>
+        <li>建議<strong>盡快安排獸醫評估</strong>，排除其他疾病（甲狀腺、疼痛、視聽障礙）。</li>
+        <li>提高日常認知刺激：嗅覺訓練、益智玩具、社交互動。</li>
+        <li>諮詢獸醫是否適合補充 Omega-3、維生素 E/C。</li>
+        <li>3 個月後重新填寫，若分數增加 ≥4 分應立即就醫。</li>
+      </ul></div>`,
+      CCD:`<div class="rec bad"><h3>🔴 疑似犬認知功能障礙（CCD）</h3><ul>
+        <li><strong>請盡快帶狗狗至獸醫院進行詳細評估。</strong>本量表僅供篩查，確診須由獸醫進行。</li>
+        <li>獸醫可能考慮的治療：司來吉蘭（selegiline）、飲食調整、環境豐富化。</li>
+        <li>排除其他原因：腦腫瘤、代謝疾病、感染、疼痛等。</li>
+        <li>調整家中環境：保持熟悉擺設、夜燈輔助、固定作息。</li>
+      </ul></div>`
+    },
+    cades:{
+      Normal:`<div class="rec ok"><h3>🟢 正常老化</h3><ul>
+        <li>目前行為表現符合正常老化，無明顯認知退化跡象。</li>
+        <li>建議每 6 個月重新使用 CADES 追蹤，早期發現轉換。</li>
+        <li>研究顯示 6 個月內有 42% 正常犬轉為輕度，請保持警覺。</li>
+      </ul></div>`,
+      Mild:`<div class="rec mild"><h3>🟡 輕度認知障礙（Mild CDS）</h3><ul>
+        <li>建議就醫評估，確認是否為 CDS 初期或其他可逆原因。</li>
+        <li>CADES 研究顯示，6 個月內約 24% 輕度犬進展至中度。</li>
+        <li>早期介入（環境豐富化、飲食補充）可延緩進展。</li>
+        <li>建議 3–6 個月後重新評估追蹤變化。</li>
+      </ul></div>`,
+      Moderate:`<div class="rec warn"><h3>🟠 中度認知障礙（Moderate CDS）</h3><ul>
+        <li><strong>建議積極就醫</strong>，評估是否適合藥物治療（如 selegiline）。</li>
+        <li>需調整家中環境以確保狗狗安全（避免撞傷、迷路）。</li>
+        <li>與獸醫討論生活品質評估及長期照護計畫。</li>
+      </ul></div>`,
+      Severe:`<div class="rec bad"><h3>🔴 重度認知障礙（Severe CDS）</h3><ul>
+        <li><strong>請立即諮詢獸醫</strong>，進行完整的神經學評估。</li>
+        <li>重度 CDS 顯著影響狗狗生活品質，需全面照護支持。</li>
+        <li>與獸醫討論安寧照護選項及生活品質評估指標。</li>
+      </ul></div>`
+    },
+    ccas:{
+      Normal:`<div class="rec ok"><h3>🟢 正常老化（Normal Ageing）</h3><ul>
+        <li>目前分數在正常老化範圍（0–7 分），行為表現良好。</li>
+        <li>建議每 6 個月重新評估，尤其是定向障礙與社交互動領域。</li>
+        <li>注意焦慮跡象，老齡犬焦慮增加可能是認知退化的早期信號。</li>
+      </ul></div>`,
+      MCI:`<div class="rec warn"><h3>🟡 輕中度認知障礙（MCI）</h3><ul>
+        <li>建議就醫評估，確認行為改變是否與 CDS 相關。</li>
+        <li>特別關注定向障礙題目的得分情況（佔總分比重最高）。</li>
+        <li>若焦慮題得分高，可請獸醫評估抗焦慮介入的必要性。</li>
+        <li>建議 3 個月後重新填寫 CCAS 追蹤變化。</li>
+      </ul></div>`,
+      Severe:`<div class="rec bad"><h3>🔴 重度認知障礙（SCI）</h3><ul>
+        <li><strong>請盡快就醫</strong>，進行完整評估並排除其他神經疾病。</li>
+        <li>重度障礙需全面的照護計畫，包括環境調整與藥物評估。</li>
+        <li>與獸醫討論生活品質及長期照護方向。</li>
+      </ul></div>`
+    }
+  };
+  document.getElementById('res-rec').innerHTML=recs[scale][cat]||'';
+}
+
+// ── DOG ID（每個瀏覽器一組，代表同一隻狗的追蹤碼）─────────────────────
+function getDogId(){
+  let id=localStorage.getItem('ccdr_dog_id');
+  if(!id){
+    id=Math.random().toString(36).substr(2,9).toUpperCase();
+    localStorage.setItem('ccdr_dog_id',id);
+  }
+  return id;
+}
+
+// ── DATA STORAGE (Firebase Firestore) ────────────────────────────────
+async function saveEntry(e){
+  if(!FB_READY){
+    showNotif('⚠️ Firebase 尚未設定，無法儲存資料','#E76F51');
+    return false;
+  }
+  try{
+    await db.collection('submissions').add({
+      dogId:e.dogId, county:e.county, dogAge:e.dogAge,
+      dogSex:e.dogSex, dogNeuter:e.dogNeuter,
+      scale:e.scale, score:e.score, cat:e.cat,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return true;
+  }catch(err){
+    console.error('Firestore write error:',err);
+    showNotif('⚠️ 資料儲存失敗，請確認網路連線','#E76F51');
+    return false;
+  }
+}
+
+// ── 統計去重：每隻狗（dogId+scale）只保留最新一筆 ────────────────────
+function deduplicateForStats(all){
+  const map={};
+  all.forEach(d=>{
+    if(!d.dogId) return;
+    const key=`${d.dogId}_${d.scale}`;
+    const ts=d.ts?.seconds||d.ts||0;
+    if(!map[key]||ts>(map[key].ts?.seconds||map[key].ts||0)) map[key]=d;
+  });
+  return Object.values(map);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────
+const CH={};
+function makeDonut(id,labels,data,colors){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2}]},
+    options:{plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},cutout:'60%'}
+  });
+}
+function makeHist(id,data,colors,minS,maxS){
+  if(CH[id])CH[id].destroy();
+  const bins=10; const w=Math.ceil((maxS-minS)/bins);
+  const counts=Array(bins).fill(0);
+  const bColors=[];
+  data.forEach(s=>{const i=Math.min(bins-1,Math.floor((s-minS)/w));counts[Math.max(0,i)]++;});
+  const labels=counts.map((_,i)=>`${minS+i*w}`);
+  const bgColors=counts.map((_,i)=>{const mid=minS+i*w+w/2;
+    if(mid<(maxS*.08+minS*.92))return colors[0];
+    if(mid<(maxS*.4+minS*.6))return colors[1]||colors[0];
+    return colors[colors.length-1];
+  });
+  CH[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:counts,backgroundColor:bgColors,borderWidth:1}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}},y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+}
+
+function drawEmpty(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(CH[id])CH[id].destroy();
+  const ctx=el.getContext('2d');
+  ctx.clearRect(0,0,el.width,el.height);
+  ctx.font='13px Microsoft JhengHei,sans-serif';
+  ctx.fillStyle='#aaa';ctx.textAlign='center';
+  ctx.fillText('填寫評估後顯示',el.offsetWidth/2||100,el.offsetHeight/2||60);
+}
+
+function renderStats(all){
+  all=deduplicateForStats(all); // 每隻狗只算最新一筆
+
+  ['ccdr','cades','ccas'].forEach(scale=>{
+    const d=all.filter(x=>x.scale===scale);
+    const S=SCALES[scale];
+    const n=d.length;
+
+    // Update count badge
+    document.getElementById(`${scale}-cnt`).textContent=n?`${n} 筆`:'尚無資料';
+
+    if(scale==='ccdr'){
+      const nrm=d.filter(x=>x.cat==='Normal').length;
+      const atk=d.filter(x=>x.cat==='AtRisk').length;
+      const ccd=d.filter(x=>x.cat==='CCD').length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('d-total').textContent=n||'—';
+      document.getElementById('d-normal').textContent=n?nrm:'—';
+      document.getElementById('d-atrisk').textContent=n?atk:'—';
+      document.getElementById('d-ccd').textContent=n?ccd:'—';
+      document.getElementById('d-avg').textContent=avg!==null?avg:'—';
+      if(n){makeDonut('ch-d-sev',['正常','高風險','疑似CCD'],[nrm,atk,ccd],S.catColors);makeHist('ch-d-hist',d.map(x=>x.score),S.catColors,16,80);}
+      else{drawEmpty('ch-d-sev');drawEmpty('ch-d-hist');}
+    } else if(scale==='cades'){
+      const ct=cat=>d.filter(x=>x.cat===cat).length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('c-total').textContent=n||'—';
+      document.getElementById('c-normal').textContent=n?ct('Normal'):'—';
+      document.getElementById('c-mild').textContent=n?ct('Mild'):'—';
+      document.getElementById('c-mod').textContent=n?ct('Moderate'):'—';
+      document.getElementById('c-sev').textContent=n?ct('Severe'):'—';
+      if(n){makeDonut('ch-c-sev',['正常','輕度','中度','重度'],[ct('Normal'),ct('Mild'),ct('Moderate'),ct('Severe')],S.catColors);makeHist('ch-c-hist',d.map(x=>x.score),S.catColors,0,95);}
+      else{drawEmpty('ch-c-sev');drawEmpty('ch-c-hist');}
+    } else {
+      const ct=cat=>d.filter(x=>x.cat===cat).length;
+      const avg=n?Math.round(d.reduce((a,b)=>a+b.score,0)/n):null;
+      document.getElementById('a-total').textContent=n||'—';
+      document.getElementById('a-normal').textContent=n?ct('Normal'):'—';
+      document.getElementById('a-mci').textContent=n?ct('MCI'):'—';
+      document.getElementById('a-sev').textContent=n?ct('Severe'):'—';
+      document.getElementById('a-avg').textContent=avg!==null?avg:'—';
+      if(n){makeDonut('ch-a-sev',['正常老化','輕中度障礙','重度障礙'],[ct('Normal'),ct('MCI'),ct('Severe')],S.catColors);makeHist('ch-a-hist',d.map(x=>x.score),S.catColors,0,69);}
+      else{drawEmpty('ch-a-sev');drawEmpty('ch-a-hist');}
+    }
+  });
+}
+
+// ── HISTORY TREND ────────────────────────────────────────────────────
+function showHistory(dogId, scale, latestScore){
+  document.getElementById('dog-id-display').textContent=dogId;
+  const S=SCALES[scale];
+  // 從 cachedData 取出本裝置這隻狗的所有紀錄（含剛送出的，等 snapshot 更新）
+  const hist=cachedData
+    .filter(d=>d.dogId===dogId&&d.scale===scale)
+    .sort((a,b)=>(a.ts?.seconds||0)-(b.ts?.seconds||0));
+  // 加上剛送出但尚未進 snapshot 的這筆
+  const allPts=[...hist.map(d=>d.score)];
+  if(!allPts.length||allPts[allPts.length-1]!==latestScore) allPts.push(latestScore);
+  const section=document.getElementById('history-section');
+  section.style.display='block';
+  document.getElementById('history-info').textContent=
+    `${S.name} · 共 ${allPts.length} 次填寫 · 此裝置追蹤中`;
+  if(CH['history'])CH['history'].destroy();
+  const labels=allPts.map((_,i)=>`第${i+1}次`);
+  const colors=allPts.map(s=>S.catColors[S.cats.indexOf(S.getCat(s))]||'#5B8FF9');
+  CH['history']=new Chart(document.getElementById('ch-history').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data:allPts,label:S.name+' 分數',
+      borderColor:'#5B8FF9',backgroundColor:'rgba(91,143,249,.12)',
+      pointBackgroundColor:colors,pointRadius:6,tension:.3,fill:true
+    }]},
+    options:{plugins:{legend:{display:false}},scales:{
+      y:{min:S.minScore,max:S.maxScore,ticks:{stepSize:Math.round((S.maxScore-S.minScore)/5)}}
+    }}
+  });
+}
+
+// ── TOGGLE STATS BLOCKS ───────────────────────────────────────────────
+function toggleStats(scale){
+  const body=document.getElementById(`${scale}-body`);
+  const arr=document.getElementById(`${scale}-arr`);
+  const open=body.classList.toggle('open');
+  arr.style.transform=open?'rotate(180deg)':'';
+  if(open) setTimeout(()=>renderStats(cachedData),50);
+}
+
+// ── ACCORDION ─────────────────────────────────────────────────────────
+function toggle(hd){
+  hd.nextElementSibling.classList.toggle('open');
+  hd.querySelector('.acc-arr').classList.toggle('open');
+}
+
+// ── NOTIFICATION ──────────────────────────────────────────────────────
+function showNotif(msg,bg='var(--pri)'){
+  const n=document.getElementById('notif');
+  n.textContent=msg;n.style.background=bg;
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),3500);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ══════════════════════════════════════════════════════════════════════
+let currentLang='zh';
+const T={
+zh:{
+  logo:'🐾 犬認知評估',
+  navLinks:['前言','開始評估','統計','文獻'],
+  heroTitle:'犬認知功能障礙評估量表',
+  heroSub:'整合 CCDR · CADES · CCAS 三種經實證驗證的量表<br>幫助飼主及早察覺愛犬的認知退化',
+  badges:['🔬 科學實證','⏱ 約 3–5 分鐘','📖 持續更新文獻'],
+  secAbout:'📋 關於這份量表',
+  introCard:`<p><strong>犬認知功能障礙（Canine Cognitive Dysfunction, CCD）</strong>，俗稱「犬失智症」，是老齡犬常見的神經行為症候群，特徵包括學習與記憶力下降、空間感喪失、社交互動改變及睡眠模式異常，與人類阿茲海默症有高度相似性。</p><br>
+<p><strong>盛行率比你想像的高得多。</strong>Neilson et al.（2001）發現 11–12 歲犬隻中有 <strong>28%</strong> 出現至少一種 CDS 症狀，15–16 歲時更高達 <strong>68%</strong>。Azkona et al.（2009）顯示 10 歲以上老齡犬約 <strong>22%</strong> 出現認知退化。Salvin et al.（2011）估計整體盛行率約 12%，14 歲以上達 31%。</p><br>
+<p>美國「<strong>犬齡研究計畫（Dog Aging Project）</strong>」自 2018 年起追蹤逾 5 萬隻犬隻，確認認知退化與年齡、體型、活動量及社交環境顯著相關（Bray et al., 2020, 2022）。</p><br>
+<p>儘管如此，仍有高達 <strong>85% 的潛在患犬未被確診</strong>（Salvin et al., 2010）。<strong>本頁整合三種量表，適用於 8 歲以上狗狗</strong>，結合獸醫診斷，可作為 CCD 的篩查與縱向追蹤工具。</p>`,
+  infoCards:[
+    {cls:'',h:'📌 填寫說明',p:'請根據狗狗<strong>近期行為</strong>作答。若不確定，選最接近選項。標 * 為必填。'},
+    {cls:'w',h:'⚠️ 重要聲明',p:'本量表為篩查工具，<strong>不能取代獸醫診斷</strong>。若擔心狗狗的認知狀況，請盡快就醫諮詢。'},
+    {cls:'g',h:'🌿 早期發現的好處',p:'愈早介入（selegiline、Omega-3、環境豐富化），效果愈好。早期治療有助延緩退化進程。'}
+  ],
+  secStart:'📝 開始評估',
+  dogInfo:'🐕 狗狗基本資料',
+  fldName:'狗狗名字（選填）',fldNamePh:'例：小黑',
+  fldAge:'年齡',fldSex:'性別',fldNeuter:'絕育狀態',fldBreed:'品種（選填）',fldBreedPh:'例：拉布拉多',
+  fldCountySec:'📍 居住縣市',
+  ageOpts:['8 歲','9 歲','10 歲','11 歲','12 歲','13 歲','14 歲','15 歲','16 歲以上'],
+  sexOpts:['公','母'],neuterOpts:['已絕育','未絕育'],
+  plsSelect:'請選擇',plsSelectCity:'請選擇縣市',
+  tabSub:['Salvin et al. 2011 · 13 題','Madari et al. 2015 · 19 題','González-Martínez 2022 · 17 題'],
+  submitBtn:'🔍 計算評估結果',
+  secStats:'📈 台灣飼主社群統計',
+  statsDesc:'資料來自所有使用本工具的飼主（即時同步，完全匿名）。',
+  fbBanner:'⚠️ <strong>Firebase 尚未設定</strong> — 統計目前無法顯示跨用戶資料。',
+  statLabels:{total:'總填寫',normal:'正常',atrisk:'高風險',ccd:'疑似CCD',mild:'輕度',mod:'中度',sev:'重度',mci:'輕中度障礙',avg:'平均分數',noData:'尚無資料'},
+  chartTitles:['嚴重程度分布','分數分布'],
+  secFacts:'🔬 關於犬認知障礙的研究發現',
+  facts:[
+    {icon:'📈',h:'隨年齡急劇上升',p:'8–10 歲盛行率約 4.4%，12–14 歲躍升至 18.6%，14 歲以上更達 31%（Salvin et al., 2011）。Neilson et al.（2001）估計 15–16 歲犬有 68% 出現認知衰退症狀。'},
+    {icon:'🎾',h:'工作犬患病率較低',p:'導盲犬、搜救犬等工作犬因長期維持認知任務，腦神經連結更活躍，CCD 發生率顯著低於一般伴侶犬，支持「認知保留（cognitive reserve）」理論。'},
+    {icon:'🧠',h:'與阿茲海默症高度相似',p:'CCD 在神經病理（β-澱粉樣蛋白、tau 蛋白沉積）、臨床表現及藥物反應上均與人類阿茲海默症高度相似，是目前最重要的自然動物模型之一。'},
+    {icon:'🔍',h:'85% 的病例被忽略',p:'研究顯示高達 85% 的 CCD 潛在患犬從未被獸醫確診，主要原因是飼主誤以為症狀屬於正常老化（Salvin et al., 2010）。'},
+    {icon:'🥦',h:'飲食介入有效',p:'富含抗氧化劑（維生素 E、C）、L-肉鹼及 Omega-3 脂肪酸的飲食可幫助維護認知功能，且愈早開始、效果愈佳（Landsberg, 2005）。'},
+    {icon:'🏃',h:'豐富化環境是最佳預防',p:'日常散步、嗅聞遊戲、學習新技能、社交互動等「大腦體操」，縱向研究支持持續的認知刺激可延緩退化（Dog Aging Project, 2022）。'}
+  ],
+  secLit:'📚 文獻摘要',
+  litItems:[
+    {h:'CCDR — Salvin et al. (2011) The Veterinary Journal',b:'大樣本（n=957）資料驅動研究，建立 13 題 CCDR 量表。診斷準確率 98.9%（PPV 77.8%，NPV 99.3%），Cronbach α=0.86，再測信度 r=0.73。分三級：&lt;40 正常、40–49 高風險、≥50 疑似 CCD。包含嚴重程度敏感題（×2、×3 加權）。近年文獻指出對早期 MCI 敏感度不足，但仍是監測首選工具。'},
+    {h:'CADES — Madari et al. (2015) Applied Animal Behaviour Science',b:'19 題，4 個行為領域（空間定向、社交互動、睡眠節律、室內排泄），每題 0–5 分，最高 95 分。分四級：≤7 正常、8–23 輕度、24–44 中度、≥45 重度。6 個月轉換率：正常→輕度 42%（12 個月 71.45%）；輕度→中度 24%（12 個月 50%）。適合縱向監測。'},
+    {h:'CCAS — González-Martínez et al. (2022)',b:'17 題，6 個領域（定向障礙×2、社交互動、睡眠節律、學習與記憶、活動量、焦慮），每題 0–3 分。定向障礙 6 題計分 ×2，最高 69 分。分三級：0–7 正常老化、8–40 MCI、41–69 重度認知障礙。以 DISHAA 問卷為骨幹，為目前唯一含焦慮領域的標準化量表。'},
+    {h:'盛行率與流行病學',b:'Neilson et al. (2001)：11–12 歲 28%，15–16 歲 68%。Azkona et al. (2009)：10 歲以上約 22%。Salvin et al. (2011)：8 歲以上整體 12%，14 歲以上 31%，85% 未被確診。Dog Aging Project (Bray et al., 2020, 2022)：追蹤 5 萬隻以上犬隻，確認認知退化與年齡、體型、社交環境顯著相關。'}
+  ],
+  footer:['🐾 本工具僅供參考，不能取代專業獸醫診斷。若擔心愛犬認知狀況，請盡快諮詢動物醫院。','資料來源：Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022','填寫資料會匿名同步至 Firebase Firestore，用於跨用戶統計分析。'],
+  progText:(d,t)=>`${d} / ${t} 題已作答`,
+  histInfo:(s,n)=>`${s} · 共 ${n} 次填寫 · 此裝置追蹤中`,
+  trackCode:'追蹤碼',trackNote:'（同一台裝置下次填寫會自動連結）',
+  histTitle:'📈 追蹤紀錄（本裝置）',
+  statsLink:'👇 查看社群統計',
+  scaleInfo:{
+    ccdr:{meta:'Salvin et al. (2011) · The Veterinary Journal · 13 題 · 最高 80 分 · 閾值：<40 正常 / 40–49 高風險 / ≥50 疑似 CCD',
+      pros:['大型樣本驗證（n=957），整體診斷準確率 98.9%','心理測量學驗證完整（Cronbach α=0.86）','包含「嚴重程度敏感題」（×2、×3 加權），提升鑑別力','適合長期縱向追蹤（≥4 分變化即具臨床意義）'],
+      cons:['近年文獻指出對<strong>早期／輕微認知障礙（MCI）敏感度較低</strong>','部分題目需回顧 6 個月變化，可能有回憶偏差','僅分三級（正常／高風險／CCD），不區分輕中重度']},
+    cades:{meta:'Madari et al. (2015) · Applied Animal Behaviour Science · 19 題 · 最高 95 分 · 閾值：≤7 正常 / 8–23 輕度 / 24–44 中度 / ≥45 重度',
+      pros:['細緻的<strong>四級嚴重程度</strong>分類（正常／輕度／中度／重度）','能有效追蹤「正常→輕度」及「輕度→中度」的疾病進展','6 個月轉換率研究：正常轉輕度 71.45%，輕度轉中度 50%（12 個月）','適合<strong>縱向監測</strong>治療反應與疾病進展'],
+      cons:['題目較多（19 題），填寫時間稍長','原始驗證樣本規模相對較小','以 4 個行為領域為主，未包含焦慮評估']},
+    ccas:{meta:'González-Martínez et al. (2022) · 17 題 · 最高 69 分 · 閾值：0–7 正常 / 8–40 輕中度障礙 / 41–69 重度障礙',
+      pros:['以 <strong>DISHAA 問卷</strong>為骨幹擴充設計，包含<strong>焦慮（Anxiety）</strong>領域','明確要求回顧「過去 6 個月」，標準化時間框架','<strong>定向障礙項目計分 ×2</strong>，強調空間認知的臨床重要性','涵蓋 6 個行為領域，評估面向最全面'],
+      cons:['輕度與中度認知障礙合併為一區間（8–40），分辨度有限','焦慮領域僅有 1 題，可能不足以全面評估','定向障礙 ×2 加權可能使分數快速上升，影響解讀']}
+  },
+  secTitles:{ccdr:'📊 第一部分：行為頻率（近期）',ccdrNote:'以下行為出現的頻率：',ccdr2:'📈 第二部分：行為變化（與 6 個月前相比）',cadesTitle:'🟣 CADES 評量（0 = 從不 → 5 = 每天多次）',ccasTitle:'🟢 CCAS 評量（回顧過去 6 個月，0 = 從不 → 3 = 幾乎每天）'},
+  qnote:{q10:'（若從未有此問題，請選「沒有變化」）',q13:'（此題方向相反，「少很多」表示退化較明顯）'},
+  opts:{
+    freq5:['從不','每月約一次','每週約一次','每天','每天多次'],
+    findFood:['從不','1–30% 的時候','31–60%','61–99%','總是'],
+    change5:['少很多','少一點','沒有變化','多一點','多很多'],
+    changeRev:['多很多','多一點','沒有變化','少一點','少很多'],
+    cades6:['從不','每月≤1次','每週1次','每週2-3次','每天','每天多次'],
+    ccas4:['從不','每月一次','每週一次','幾乎每天']
+  },
+  ccdrQ:[
+    {q:'漫無目的地踱步、繞圈或無方向性徘徊',opts:'freq5'},
+    {q:'發呆地凝視牆壁或地板',opts:'freq5'},
+    {q:'卡在障礙物後面，無法自行繞開',opts:'freq5'},
+    {q:'無法認出熟悉的人或其他寵物',opts:'freq5'},
+    {q:'撞上牆壁或門',opts:'freq5'},
+    {q:'被撫摸時走開或刻意迴避',opts:'freq5'},
+    {q:'難以找到掉落在地板上的食物',opts:'findFood'},
+    {q:'踱步、繞圈或無方向徘徊的情況',opts:'change5'},
+    {q:'發呆凝視牆壁或地板的情況',opts:'change5'},
+    {q:'在原本保持乾淨的地方大小便',opts:'change5',note:'qnote.q10'},
+    {q:'難以找到掉落食物的情況',opts:'change5',multi:'×2'},
+    {q:'無法認出熟悉的人或寵物的情況',opts:'change5',multi:'×3'},
+    {q:'花在活動上的時間：',opts:'changeRev',note:'qnote.q13'}
+  ],
+  cadesQ:[
+    {domain:'空間定向',qs:['在熟悉環境中迷路，或找不到熟悉地點（食碗、門口、睡覺處）','毫無目的地凝視牆壁、角落或空間','卡在家具後面或角落，無法自行脫困','站在門的鉸鏈側而非把手側，無法自行開門','無法認出熟悉的人或動物']},
+    {domain:'社交互動',qs:['主人回家時，問候或迎接的行為減少或消失','主動尋求注意或接觸的行為減少','迴避被觸摸或撫摸','對家庭活動的興趣或參與感降低','對玩耍的興趣減少或消失']},
+    {domain:'睡眠-清醒週期',qs:['夜間不安、清醒或在屋內遊走','白天睡眠時間顯著增加','夜間吠叫、嚎叫或發出不安聲音','睡眠節律顛倒（夜間活躍、白天嗜睡）']},
+    {domain:'室內排泄',qs:['在原本保持乾淨的室內地點排泄','忘記或不再提示需要外出排泄','外出排泄後返家仍在室內排泄','在睡眠或休息區域排泄','排泄後顯得困惑或對排泄行為若無其事']}
+  ],
+  ccasQ:[
+    {domain:'定向障礙（計分 ×2）',multi:true,qs:['凝視虛空，彷彿看見不存在的事物','不記得回家的路，或在熟悉環境中迷路','卡在物品或家具後面，無法自行脫困','停在門的錯誤一側（想穿過卻站在鉸鏈側）','對以前會有反應的刺激（如聲音、名字）不再反應','不再發出想外出或如廁的信號']},
+    {domain:'社交互動',multi:false,qs:['無法認出或識別熟悉的人','無法認出或識別熟悉的動物','對人或其他狗表現出更多恐懼或攻擊性']},
+    {domain:'睡眠-清醒週期',multi:false,qs:['在無明顯原因的情況下夜間遊走','在無明顯原因的情況下夜間發出叫聲']},
+    {domain:'學習與記憶',multi:false,qs:['在新的或不適當的地點排尿和/或排便','對以前學會的指令難以做出反應']},
+    {domain:'活動量',multi:false,qs:['比以前更不活躍或不愛玩','出現重複性動作或行為','毫無目的地遊走']},
+    {domain:'焦慮',multi:false,qs:['與飼主分離時，表現出比以前更多的焦慮']}
+  ],
+  catLabels:{Normal:'正常（Normal）',AtRisk:'高風險（At Risk）',CCD:'疑似 CCD（Canine Cognitive Dysfunction）',Mild:'輕度認知障礙',Moderate:'中度認知障礙',Severe:'重度認知障礙',MCI:'輕中度認知障礙（MCI）'},
+  recTitle:{Normal:'🟢 認知功能正常',AtRisk:'🟡 認知功能有退化風險',CCD:'🔴 疑似犬認知功能障礙（CCD）',Mild:'🟡 輕度認知障礙（Mild CDS）',Moderate:'🟠 中度認知障礙（Moderate CDS）',Severe:'🔴 重度認知障礙（Severe CDS）',MCI:'🟡 輕中度認知障礙（MCI）',SCI:'🔴 重度認知障礙（SCI）'},
+  ccdrBlocks:[
+    {id:'ccdr-blk',label:'CCDR 統計',labels:{n:'正常 <40',ar:'高風險 40–49',ccd:'疑似CCD ≥50'}},
+    {id:'cades-blk',label:'CADES 統計',labels:{n:'正常 ≤7',mild:'輕度 8–23',mod:'中度 24–44',sev:'重度 ≥45'}},
+    {id:'ccas-blk',label:'CCAS 統計',labels:{n:'正常 0–7',mci:'輕中度 8–40',sev:'重度 ≥41'}}
+  ]
+},
+en:{
+  logo:'🐾 CCD Assessment',
+  navLinks:['Introduction','Start','Statistics','Literature'],
+  heroTitle:'Canine Cognitive Dysfunction Assessment',
+  heroSub:'Integrating three validated scales: CCDR · CADES · CCAS<br>Helping owners detect cognitive decline early',
+  badges:['🔬 Evidence-based','⏱ ~3–5 minutes','📖 Updated literature'],
+  secAbout:'📋 About This Tool',
+  introCard:`<p><strong>Canine Cognitive Dysfunction (CCD)</strong>, commonly known as "canine dementia," is a neurobehavioural syndrome in older dogs characterised by deficits in learning and memory, spatial disorientation, altered social interactions, and sleep disturbances — closely resembling human Alzheimer\'s disease.</p><br>
+<p><strong>Prevalence is higher than you might think.</strong> Neilson et al. (2001) found that <strong>28%</strong> of dogs aged 11–12 years showed at least one sign of CDS, rising to <strong>68%</strong> at 15–16 years. Azkona et al. (2009) found ~<strong>22%</strong> of geriatric dogs ≥10 years showed CCD-consistent behaviour changes. Salvin et al. (2011) estimated overall prevalence at 12% in dogs ≥8 years, and 31% in those ≥14 years.</p><br>
+<p>The <strong>Dog Aging Project</strong> has been tracking 50,000+ dogs since 2018, confirming that cognitive decline is significantly associated with age, body size, activity level, and social environment (Bray et al., 2020, 2022).</p><br>
+<p>Despite this, up to <strong>85% of affected dogs remain undiagnosed</strong> (Salvin et al., 2010). <strong>This page integrates three validated scales for dogs aged 8+</strong>, serving as a screening and longitudinal monitoring tool alongside veterinary assessment.</p>`,
+  infoCards:[
+    {cls:'',h:'📌 Instructions',p:'Answer based on your dog\'s <strong>recent behaviour</strong>. If unsure, select the closest option. Fields marked * are required.'},
+    {cls:'w',h:'⚠️ Important Disclaimer',p:'This tool is for screening only and <strong>cannot replace veterinary diagnosis</strong>. If concerned, please consult a veterinarian promptly.'},
+    {cls:'g',h:'🌿 Benefits of Early Detection',p:'Earlier intervention (selegiline, Omega-3, environmental enrichment) yields better outcomes. Early treatment helps slow cognitive decline.'}
+  ],
+  secStart:'📝 Start Assessment',
+  dogInfo:'🐕 Dog Information',
+  fldName:'Dog\'s Name (optional)',fldNamePh:'e.g. Buddy',
+  fldAge:'Age',fldSex:'Sex',fldNeuter:'Sterilisation',fldBreed:'Breed (optional)',fldBreedPh:'e.g. Labrador',
+  fldCountySec:'📍 Location',
+  ageOpts:['8 yrs','9 yrs','10 yrs','11 yrs','12 yrs','13 yrs','14 yrs','15 yrs','16+ yrs'],
+  sexOpts:['Male','Female'],neuterOpts:['Neutered/Spayed','Intact'],
+  plsSelect:'Please select',plsSelectCity:'Please select city',
+  tabSub:['Salvin et al. 2011 · 13 items','Madari et al. 2015 · 19 items','González-Martínez 2022 · 17 items'],
+  submitBtn:'🔍 Calculate Result',
+  secStats:'📈 Community Statistics',
+  statsDesc:'Data from all users of this tool (real-time, fully anonymous).',
+  fbBanner:'⚠️ <strong>Firebase not configured</strong> — Cross-user statistics unavailable.',
+  statLabels:{total:'Total',normal:'Normal',atrisk:'At Risk',ccd:'Suspected CCD',mild:'Mild',mod:'Moderate',sev:'Severe',mci:'Mild–Mod',avg:'Avg Score',noData:'No data yet'},
+  chartTitles:['Severity Distribution','Score Distribution'],
+  secFacts:'🔬 Research Highlights',
+  facts:[
+    {icon:'📈',h:'Prevalence rises sharply with age',p:'4.4% at 8–10 yrs, 18.6% at 12–14 yrs, and 31% in dogs >14 yrs (Salvin et al., 2011). Neilson et al. (2001) reported 68% of dogs aged 15–16 showing signs.'},
+    {icon:'🎾',h:'Working dogs have lower rates',p:'Guide dogs and search-and-rescue dogs, with sustained cognitive demands, show significantly lower CCD rates — supporting the cognitive reserve hypothesis.'},
+    {icon:'🧠',h:'Closely mirrors Alzheimer\'s disease',p:'CCD shares neuropathological hallmarks (β-amyloid & tau accumulation), clinical presentation, and pharmacological responsiveness with human Alzheimer\'s disease.'},
+    {icon:'🔍',h:'85% of cases go undiagnosed',p:'Up to 85% of potentially affected dogs are never diagnosed — owners commonly attribute signs to normal ageing (Salvin et al., 2010).'},
+    {icon:'🥦',h:'Diet intervention is effective',p:'Diets rich in antioxidants (Vitamins E & C), L-carnitine, and Omega-3 fatty acids help preserve cognitive function — the earlier started, the better (Landsberg, 2005).'},
+    {icon:'🏃',h:'Environmental enrichment is key',p:'Daily walks, nose-work games, learning new skills, and social interaction act as "brain exercise." Longitudinal studies support cognitive stimulation in slowing decline.'}
+  ],
+  secLit:'📚 Literature Summary',
+  litItems:[
+    {h:'CCDR — Salvin et al. (2011) The Veterinary Journal',b:'Large-sample (n=957) data-driven study. Diagnostic accuracy 98.9% (PPV 77.8%, NPV 99.3%), Cronbach α=0.86, test–retest r=0.73. Three levels: <40 Normal, 40–49 At Risk, ≥50 Suspected CCD. Severity-sensitive items weighted ×2 and ×3. Recent literature notes lower sensitivity for early MCI.'},
+    {h:'CADES — Madari et al. (2015) Applied Animal Behaviour Science',b:'19 items, 4 domains (spatial orientation, social interaction, sleep–wake cycle, house soiling), scored 0–5, max 95. Four levels: ≤7 Normal, 8–23 Mild, 24–44 Moderate, ≥45 Severe. 6-month conversion: Normal→Mild 42% (71.45% at 12 mo); Mild→Moderate 24% (50% at 12 mo).'},
+    {h:'CCAS — González-Martínez et al. (2022)',b:'17 items, 6 domains (Disorientation ×2, Social Interaction, Sleep–Wake, Learning & Memory, Activity, Anxiety), scored 0–3. Disorientation ×2, max 69. Three levels: 0–7 Normal Ageing, 8–40 MCI, 41–69 SCI. DISHAA-based; only standardised scale with an Anxiety domain.'},
+    {h:'Prevalence & Epidemiology',b:'Neilson et al. (2001): 28% at 11–12 yrs, 68% at 15–16 yrs. Azkona et al. (2009): ~22% in dogs ≥10 yrs. Salvin et al. (2011): 12% overall (≥8 yrs), 31% (≥14 yrs), 85% undiagnosed. Dog Aging Project (Bray et al., 2020, 2022): 50k+ dogs tracked, age, size & environment linked to cognitive decline.'}
+  ],
+  footer:['🐾 For screening purposes only — not a substitute for veterinary diagnosis. If concerned, please consult a veterinarian.','Sources: Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022','Submissions are anonymously synced to Firebase Firestore for cross-user statistics.'],
+  progText:(d,t)=>`${d} / ${t} answered`,
+  histInfo:(s,n)=>`${s} · ${n} submission(s) · tracking on this device`,
+  trackCode:'Tracking ID',trackNote:'(future submissions from this device link automatically)',
+  histTitle:'📈 Your Dog\'s History',
+  statsLink:'👇 View Community Statistics',
+  scaleInfo:{
+    ccdr:{meta:'Salvin et al. (2011) · The Veterinary Journal · 13 items · Max 80 pts · Cutoffs: <40 Normal / 40–49 At Risk / ≥50 Suspected CCD',
+      pros:['Large validated sample (n=957); diagnostic accuracy 98.9%','Strong psychometric properties (Cronbach α=0.86)','Severity-sensitive items (×2, ×3 weighting) improve discrimination','Suitable for longitudinal monitoring (≥4-point change is clinically significant)'],
+      cons:['Recent literature indicates <strong>lower sensitivity for early MCI</strong>','Some items require 6-month retrospective recall — potential recall bias','Only three severity levels (Normal / At Risk / CCD)']},
+    cades:{meta:'Madari et al. (2015) · Applied Animal Behaviour Science · 19 items · Max 95 pts · Cutoffs: ≤7 Normal / 8–23 Mild / 24–44 Moderate / ≥45 Severe',
+      pros:['Detailed <strong>four-level severity</strong> classification','Effectively tracks Normal→Mild and Mild→Moderate transitions','Conversion rate data: Normal→Mild 71.45% at 12 months; Mild→Moderate 50%','Ideal for <strong>longitudinal monitoring</strong> of treatment response'],
+      cons:['More items (19), takes slightly longer to complete','Relatively smaller original validation sample','Four behavioural domains only — no anxiety assessment']},
+    ccas:{meta:'González-Martínez et al. (2022) · 17 items · Max 69 pts · Cutoffs: 0–7 Normal / 8–40 MCI / 41–69 Severe',
+      pros:['Built on the <strong>DISHAA questionnaire</strong>, includes <strong>Anxiety</strong> domain','Standardised 6-month recall timeframe','<strong>Disorientation items ×2</strong> emphasises spatial cognition','Most comprehensive — covers 6 behavioural domains'],
+      cons:['Mild and moderate impairment merged in one category (8–40)','Only 1 anxiety item may not capture full picture','Disorientation ×2 weighting can inflate scores rapidly']}
+  },
+  secTitles:{ccdr:'📊 Part 1: Behaviour Frequency (Recent)',ccdrNote:'How often do the following behaviours occur:',ccdr2:'📈 Part 2: Behaviour Changes (vs. 6 months ago)',cadesTitle:'🟣 CADES Assessment (0 = Never → 5 = Multiple times/day)',ccasTitle:'🟢 CCAS Assessment (past 6 months, 0 = Never → 3 = Almost daily)'},
+  qnote:{q10:'(If never house-soiled before, select "No change")',q13:'(Reversed scale — "Much less" indicates greater impairment)'},
+  opts:{
+    freq5:['Never','~Once/month','~Once/week','Daily','>Once/day'],
+    findFood:['Never','1–30% of times','31–60%','61–99%','Always'],
+    change5:['Much less','Slightly less','No change','Slightly more','Much more'],
+    changeRev:['Much more','Slightly more','No change','Slightly less','Much less'],
+    cades6:['Never','≤Once/month','Once/week','2–3×/week','Daily','Multiple/day'],
+    ccas4:['Never','Once/month','Once/week','Almost daily']
+  },
+  ccdrQ:[
+    {q:'Paces up and down, walks in circles, or wanders with no direction or purpose',opts:'freq5'},
+    {q:'Stares blankly at walls or the floor',opts:'freq5'},
+    {q:'Gets stuck behind objects and is unable to get around',opts:'freq5'},
+    {q:'Fails to recognise familiar people or pets',opts:'freq5'},
+    {q:'Walks into walls or doors',opts:'freq5'},
+    {q:'Walks away while, or avoids, being patted',opts:'freq5'},
+    {q:'Has difficulty finding food dropped on the floor',opts:'findFood'},
+    {q:'Pacing, circling, or purposeless wandering (change vs. 6 months ago)',opts:'change5'},
+    {q:'Staring blankly at walls or floor (change vs. 6 months ago)',opts:'change5'},
+    {q:'Urinating or defecating in previously clean areas',opts:'change5',note:'qnote.q10'},
+    {q:'Difficulty finding dropped food (change vs. 6 months ago)',opts:'change5',multi:'×2'},
+    {q:'Failure to recognise familiar people or pets (change vs. 6 months ago)',opts:'change5',multi:'×3'},
+    {q:'Amount of time spent active (compared to 6 months ago):',opts:'changeRev',note:'qnote.q13'}
+  ],
+  cadesQ:[
+    {domain:'Spatial Orientation',qs:['Gets lost in familiar environments or cannot find familiar locations (food bowl, doorway, sleeping area)','Stares blankly at walls, corners, or into space','Gets stuck behind furniture or in corners and cannot escape','Stands at the hinge side of the door instead of the handle side','Fails to recognise familiar people or animals']},
+    {domain:'Social Interactions',qs:['Greeting behaviour when owner returns is reduced or absent','Actively seeking attention or contact has decreased','Avoids being touched or petted','Reduced interest or participation in family activities','Reduced or absent interest in play']},
+    {domain:'Sleep–Wake Cycles',qs:['Restless, awake, or wandering at night','Significantly increased daytime sleeping','Barking, howling, or vocalising at night','Reversed sleep-wake rhythm (active at night, sleepy during day)']},
+    {domain:'House Soiling',qs:['Eliminates in indoor areas previously kept clean','Forgets to or no longer signals need to go outside','Eliminates indoors after returning from a toilet trip outside','Eliminates in sleeping or resting areas','Appears confused after eliminating or shows no awareness of the behaviour']}
+  ],
+  ccasQ:[
+    {domain:'Disorientation (score ×2)',multi:true,qs:['Stares into empty space as if seeing something not there','Cannot find the way home or gets lost in familiar surroundings','Gets stuck behind objects or furniture and cannot get out','Stands on the wrong side of the door (hinge side, cannot open)','No longer responds to stimuli (sounds, name) it previously reacted to','No longer signals the need to go outside or to toilet']},
+    {domain:'Social Interaction',multi:false,qs:['Fails to recognise or identify familiar people','Fails to recognise or identify familiar animals','Shows more fear or aggression towards people and/or other dogs']},
+    {domain:'Sleep–Wake Cycle',multi:false,qs:['Walks around at night without obvious reason','Vocalises (barks/howls) at night without obvious reason']},
+    {domain:'Learning & Memory',multi:false,qs:['Urinates and/or defecates in new or inappropriate places','Has difficulty responding to previously learned commands']},
+    {domain:'Activity Level',multi:false,qs:['Less active or playful than before','Shows repetitive behaviours or movements','Wanders without apparent purpose']},
+    {domain:'Anxiety',multi:false,qs:['Shows more signs of anxiety when separated from owners']}
+  ],
+  catLabels:{Normal:'Normal',AtRisk:'At Risk',CCD:'Suspected CCD',Mild:'Mild CDS',Moderate:'Moderate CDS',Severe:'Severe CDS',MCI:'Mild–Moderate Impairment (MCI)',SCI:'Severe Cognitive Impairment (SCI)'},
+  recTitle:{Normal:'🟢 Normal Cognitive Function',AtRisk:'🟡 Cognitive Decline Risk Detected',CCD:'🔴 Suspected Canine Cognitive Dysfunction (CCD)',Mild:'🟡 Mild Cognitive Impairment',Moderate:'🟠 Moderate Cognitive Dysfunction',Severe:'🔴 Severe Cognitive Dysfunction',MCI:'🟡 Mild–Moderate Cognitive Impairment',SCI:'🔴 Severe Cognitive Impairment'}
+},
+ja:{
+  logo:'🐾 犬の認知評価',
+  navLinks:['はじめに','評価開始','統計','文献'],
+  heroTitle:'犬の認知機能障害評価スケール',
+  heroSub:'CCDR · CADES · CCAS 3種の検証済みスケールを統合<br>飼い主が愛犬の認知機能低下を早期に発見するために',
+  badges:['🔬 科学的根拠あり','⏱ 約3〜5分','📖 最新文献反映'],
+  secAbout:'📋 このツールについて',
+  introCard:`<p><strong>犬の認知機能障害（Canine Cognitive Dysfunction, CCD）</strong>、いわゆる「犬の認知症」は、高齢犬に多く見られる神経行動症候群で、学習・記憶力の低下、空間認識の喪失、社会的相互作用の変化、睡眠パターンの異常を特徴とし、ヒトのアルツハイマー病と高度に類似しています。</p><br>
+<p><strong>有病率は思っているより高い。</strong>Neilson et al.（2001）は11〜12歳の犬の<strong>28%</strong>がCDSの症状を1つ以上示し、15〜16歳では<strong>68%</strong>に達することを報告。Salvin et al.（2011）は8歳以上の犬全体で約12%、14歳以上では31%と推定。</p><br>
+<p><strong>Dog Aging Project</strong>は2018年以降5万頭以上を追跡し、認知機能低下が年齢・体型・活動量・社会環境と有意に関連することを確認（Bray et al., 2020, 2022）。</p><br>
+<p>それでも、<strong>潜在的な罹患犬の85%が未診断</strong>のまま（Salvin et al., 2010）。<strong>本ツールは3種のスケールを統合し、8歳以上の犬に適用可能</strong>です。獣医師の診断と組み合わせてご活用ください。</p>`,
+  infoCards:[
+    {cls:'',h:'📌 記入方法',p:'愛犬の<strong>最近の行動</strong>に基づいて回答してください。不明な場合は最も近い選択肢を選んでください。* は必須項目です。'},
+    {cls:'w',h:'⚠️ 重要な免責事項',p:'本ツールはスクリーニング目的のみであり、<strong>獣医師の診断に代わるものではありません</strong>。ご心配な場合は速やかに獣医師にご相談ください。'},
+    {cls:'g',h:'🌿 早期発見のメリット',p:'早期介入（selegiline、Omega-3、環境エンリッチメント）ほど効果的です。早期治療により認知機能低下の進行を遅らせることができます。'}
+  ],
+  secStart:'📝 評価を開始',
+  dogInfo:'🐕 犬の基本情報',
+  fldName:'犬の名前（任意）',fldNamePh:'例：ポチ',
+  fldAge:'年齢',fldSex:'性別',fldNeuter:'避妊・去勢',fldBreed:'犬種（任意）',fldBreedPh:'例：ラブラドール',
+  fldCountySec:'📍 お住まいの地域',
+  ageOpts:['8歳','9歳','10歳','11歳','12歳','13歳','14歳','15歳','16歳以上'],
+  sexOpts:['オス','メス'],neuterOpts:['去勢・避妊済み','未去勢・未避妊'],
+  plsSelect:'選択してください',plsSelectCity:'市区町村を選択',
+  tabSub:['Salvin et al. 2011 · 13項目','Madari et al. 2015 · 19項目','González-Martínez 2022 · 17項目'],
+  submitBtn:'🔍 結果を計算する',
+  secStats:'📈 コミュニティ統計',
+  statsDesc:'本ツールの全ユーザーのデータ（リアルタイム同期、完全匿名）。',
+  fbBanner:'⚠️ <strong>Firebase未設定</strong> — クロスユーザー統計は現在利用できません。',
+  statLabels:{total:'合計',normal:'正常',atrisk:'リスクあり',ccd:'CCD疑い',mild:'軽度',mod:'中等度',sev:'重度',mci:'軽〜中等度',avg:'平均スコア',noData:'データなし'},
+  chartTitles:['重症度分布','スコア分布'],
+  secFacts:'🔬 研究ハイライト',
+  facts:[
+    {icon:'📈',h:'年齢とともに急増',p:'8〜10歳で約4.4%、12〜14歳で18.6%、14歳以上では31%（Salvin et al., 2011）。Neilson et al.（2001）は15〜16歳の68%に認知機能低下の症状を報告。'},
+    {icon:'🎾',h:'使役犬は発症率が低い',p:'盲導犬や救助犬など、継続的な認知的課題を担う使役犬では一般の伴侶犬よりCCDの発症率が有意に低く、「認知的予備力」の理論を支持しています。'},
+    {icon:'🧠',h:'アルツハイマー病と酷似',p:'CDCはβアミロイド・タウタンパク質の蓄積、臨床的特徴、薬物反応性においてヒトのアルツハイマー病と高度に類似しており、最も重要な自然発症動物モデルの1つです。'},
+    {icon:'🔍',h:'症例の85%が未診断',p:'潜在的な罹患犬の最大85%が診断されることなく見過ごされています。飼い主が症状を正常な老化と誤解することが主な原因（Salvin et al., 2010）。'},
+    {icon:'🥦',h:'食事介入の効果',p:'抗酸化物質（ビタミンE・C）、L-カルニチン、Omega-3脂肪酸を豊富に含む食事は認知機能の維持に役立ちます。開始が早いほど効果的（Landsberg, 2005）。'},
+    {icon:'🏃',h:'環境エンリッチメントが最善の予防策',p:'毎日の散歩、ノーズワーク、新しい技術の学習、社会的交流などの「脳トレ」は、縦断的研究で認知機能低下を遅らせることが支持されています。'}
+  ],
+  secLit:'📚 文献まとめ',
+  litItems:[
+    {h:'CCDR — Salvin et al. (2011) The Veterinary Journal',b:'大規模サンプル（n=957）データ駆動研究。診断精度98.9%（PPV 77.8%、NPV 99.3%）、Cronbach α=0.86、再検査信頼性r=0.73。3段階：<40正常、40–49リスクあり、≥50CCD疑い。重症度感応項目（×2・×3加重）を含む。近年の文献では早期MCIへの感度不足を指摘。'},
+    {h:'CADES — Madari et al. (2015) Applied Animal Behaviour Science',b:'19項目、4領域（空間的見当識・社会的相互作用・睡眠覚醒サイクル・不適切排泄）、0–5点、最高95点。4段階：≤7正常、8–23軽度、24–44中等度、≥45重度。6か月転換率：正常→軽度42%（12か月71.45%）；軽度→中等度24%（12か月50%）。'},
+    {h:'CCAS — González-Martínez et al. (2022)',b:'17項目、6領域（見当識障害×2・社会的相互作用・睡眠覚醒・学習と記憶・活動量・不安）、0–3点。見当識障害×2、最高69点。3段階：0–7正常老化、8–40MCI、41–69重度認知障害。DISHAA問票を基盤とした唯一の不安領域含む標準化スケール。'},
+    {h:'有病率と疫学',b:'Neilson et al. (2001)：11–12歳28%、15–16歳68%。Azkona et al. (2009)：10歳以上約22%。Salvin et al. (2011)：8歳以上全体12%、14歳以上31%、85%が未診断。Dog Aging Project (Bray et al., 2020, 2022)：5万頭以上を追跡、年齢・体型・社会環境との関連を確認。'}
+  ],
+  footer:['🐾 スクリーニング目的のみ — 獣医師の診断に代わるものではありません。ご心配な場合は獣医師にご相談ください。','出典：Salvin et al. 2011 · Madari et al. 2015 · González-Martínez et al. 2022','送信データはFirebase Firestoreに匿名で同期されます。'],
+  progText:(d,t)=>`${d} / ${t} 回答済み`,
+  histInfo:(s,n)=>`${s} · ${n}回の記録 · このデバイスで追跡中`,
+  trackCode:'追跡コード',trackNote:'（同じデバイスからの次回入力は自動的に紐付けられます）',
+  histTitle:'📈 愛犬の記録履歴',
+  statsLink:'👇 コミュニティ統計を見る',
+  scaleInfo:{
+    ccdr:{meta:'Salvin et al. (2011) · The Veterinary Journal · 13項目 · 最高80点 · カットオフ：<40正常 / 40–49リスク / ≥50CCD疑い',
+      pros:['大規模検証済みサンプル（n=957）、診断精度98.9%','優れた心理測定学的特性（Cronbach α=0.86）','重症度感応項目（×2・×3加重）が識別力を向上','縦断的モニタリングに適している（4点以上の変化は臨床的に有意）'],
+      cons:['近年の文献は<strong>早期MCIへの感度不足</strong>を指摘','一部の項目は6か月の遡及的想起が必要 — 想起バイアスの可能性','3段階のみ（正常/リスクあり/CCD）、軽中重度を区別しない']},
+    cades:{meta:'Madari et al. (2015) · Applied Animal Behaviour Science · 19項目 · 最高95点 · カットオフ：≤7正常 / 8–23軽度 / 24–44中等度 / ≥45重度',
+      pros:['詳細な<strong>4段階重症度</strong>分類','正常→軽度・軽度→中等度の移行を効果的に追跡','転換率データ：12か月で正常→軽度71.45%、軽度→中等度50%','治療反応の<strong>縦断的モニタリング</strong>に最適'],
+      cons:['項目が多い（19項目）、記入に少し時間がかかる','元の検証サンプルが比較的小規模','不安の評価なし — 4つの行動領域のみ']},
+    ccas:{meta:'González-Martínez et al. (2022) · 17項目 · 最高69点 · カットオフ：0–7正常 / 8–40MCI / 41–69重度',
+      pros:['<strong>DISHAA問票</strong>を基盤とし、<strong>不安（Anxiety）</strong>領域を含む','標準化された6か月の振り返り期間','<strong>見当識障害項目×2</strong>が空間認知の臨床的重要性を強調','最も包括的 — 6つの行動領域をカバー'],
+      cons:['軽度と中等度の障害が1つのカテゴリーに統合（8–40）','不安項目が1つのみ — 全体像を把握できない可能性','見当識障害×2の加重でスコアが急速に上昇する可能性']}
+  },
+  secTitles:{ccdr:'📊 第1部：行動頻度（最近）',ccdrNote:'以下の行動が起こる頻度：',ccdr2:'📈 第2部：行動の変化（6か月前との比較）',cadesTitle:'🟣 CADES評価（0=なし → 5=毎日複数回）',ccasTitle:'🟢 CCAS評価（過去6か月、0=なし → 3=ほぼ毎日）'},
+  qnote:{q10:'（以前に室内排泄がなかった場合は「変化なし」を選択）',q13:'（逆スコア — 「かなり減少」が最も機能低下を示す）'},
+  opts:{
+    freq5:['なし','月に1回程度','週に1回程度','毎日','毎日複数回'],
+    findFood:['なし','1〜30%の場合','31〜60%','61〜99%','常に'],
+    change5:['かなり減少','やや減少','変化なし','やや増加','かなり増加'],
+    changeRev:['かなり増加','やや増加','変化なし','やや減少','かなり減少'],
+    cades6:['なし','月1回以下','週1回','週2〜3回','毎日','毎日複数回'],
+    ccas4:['なし','月1回','週1回','ほぼ毎日']
+  },
+  ccdrQ:[
+    {q:'目的なくうろつく、円を描くように歩く、あてもなく徘徊する',opts:'freq5'},
+    {q:'壁や床をぼんやりと見つめる',opts:'freq5'},
+    {q:'物の後ろに挟まり、自力で抜け出せなくなる',opts:'freq5'},
+    {q:'見慣れた人やペットを認識できない',opts:'freq5'},
+    {q:'壁やドアにぶつかる',opts:'freq5'},
+    {q:'なでられているときに離れるか、避ける',opts:'freq5'},
+    {q:'床に落ちた食べ物を見つけるのが難しい',opts:'findFood'},
+    {q:'徘徊・円歩き・目的のない放浪の変化（6か月前との比較）',opts:'change5'},
+    {q:'壁や床をぼんやり見つめる変化（6か月前との比較）',opts:'change5'},
+    {q:'清潔に保っていた場所での排泄',opts:'change5',note:'qnote.q10'},
+    {q:'落ちた食べ物を見つける困難さの変化（6か月前との比較）',opts:'change5',multi:'×2'},
+    {q:'見慣れた人やペットの認識失敗の変化（6か月前との比較）',opts:'change5',multi:'×3'},
+    {q:'活動に費やす時間（6か月前との比較）：',opts:'changeRev',note:'qnote.q13'}
+  ],
+  cadesQ:[
+    {domain:'空間的見当識',qs:['慣れた環境で迷子になる、またはよく知っている場所（食器・出入口・寝床）が分からない','壁・角・空間をぼんやりと見つめる','家具の後ろや角に挟まり、自力で脱出できない','ドアのヒンジ側に立ち、自力で開けられない','見慣れた人や動物を認識できない']},
+    {domain:'社会的相互作用',qs:['飼い主帰宅時の挨拶行動が減少または消失','自ら注意や接触を求める行動が減少','触れられること・なでられることを避ける','家族の活動への興味や参加が減少','遊びへの興味が減少または消失']},
+    {domain:'睡眠・覚醒サイクル',qs:['夜間に落ち着かない、目が覚めている、または家の中をうろつく','日中の睡眠が著しく増加','夜間に吠える・遠吠えする・不安な声を出す','睡眠・覚醒リズムの逆転（夜間に活発、昼間に眠い）']},
+    {domain:'不適切排泄',qs:['以前は清潔に保っていた室内の場所で排泄','外出の必要性を示すサインを忘れる、または示さなくなる','外出後に帰宅しても室内で排泄','睡眠・休憩エリアで排泄','排泄後に混乱した様子、または排泄行動を意識していない様子']}
+  ],
+  ccasQ:[
+    {domain:'見当識障害（スコア×2）',multi:true,qs:['何もないのに何かを見るように空をじっと見つめる','帰り道を覚えていない、または慣れた環境で迷子になる','物や家具の後ろに挟まり、自力で脱出できない','ドアの間違った側（ヒンジ側）に立ち、通り抜けられない','以前は反応していた刺激（音、名前）に反応しなくなる','外出やトイレの必要性を示すサインを出さなくなる']},
+    {domain:'社会的相互作用',multi:false,qs:['見慣れた人を認識または識別できない','見慣れた動物を認識または識別できない','人や他の犬に対してより多くの恐怖や攻撃性を示す']},
+    {domain:'睡眠・覚醒サイクル',multi:false,qs:['明らかな理由なく夜間に歩き回る','明らかな理由なく夜間に鳴く']},
+    {domain:'学習と記憶',multi:false,qs:['新しい・不適切な場所で排尿および/または排便する','以前に学習したコマンドに反応するのが難しい']},
+    {domain:'活動量',multi:false,qs:['以前より活動的でない、または遊ばない','反復的な動作や行動を示す','明らかな目的なく歩き回る']},
+    {domain:'不安',multi:false,qs:['飼い主から離されたとき、以前より多くの不安の兆候を示す']}
+  ],
+  catLabels:{Normal:'正常',AtRisk:'リスクあり',CCD:'CCD疑い',Mild:'軽度CDS',Moderate:'中等度CDS',Severe:'重度CDS',MCI:'軽〜中等度認知障害（MCI）',SCI:'重度認知障害（SCI）'},
+  recTitle:{Normal:'🟢 認知機能は正常',AtRisk:'🟡 認知機能低下リスク検出',CCD:'🔴 犬の認知機能障害（CCD）疑い',Mild:'🟡 軽度認知障害（Mild CDS）',Moderate:'🟠 中等度認知機能障害',Severe:'🔴 重度認知機能障害',MCI:'🟡 軽〜中等度認知障害（MCI）',SCI:'🔴 重度認知障害（SCI）'}
+}
+};// end T
+
+function t(key){
+  const keys=key.split('.');
+  let o=T[currentLang];
+  for(const k of keys){o=o?.[k];}
+  if(o===undefined){let fb=T.zh;for(const k of keys)fb=fb?.[k];return fb??key;}
+  return o;
+}
+
+function applyLang(lang){
+  currentLang=lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.textContent==(lang==='zh'?'中':lang==='en'?'EN':'日')));
+  document.documentElement.lang=lang==='zh'?'zh-TW':lang==='en'?'en':lang==='ja'?'ja':'zh-TW';
+  // Nav
+  document.getElementById('nav-logo').textContent=t('logo');
+  const navIds=['nav-intro','nav-start','nav-stats','nav-lit'];
+  t('navLinks').forEach((txt,i)=>document.getElementById(navIds[i]).textContent=txt);
+  // Hero
+  document.getElementById('hero-title').textContent=t('heroTitle');
+  document.getElementById('hero-sub').innerHTML=t('heroSub');
+  document.getElementById('hero-badges').innerHTML=t('badges').map(b=>`<span class="badge">${b}</span>`).join('');
+  // Intro
+  document.querySelector('#intro .sec-title').textContent=t('secAbout');
+  document.getElementById('intro-card').innerHTML=t('introCard');
+  document.getElementById('intro-grid').innerHTML=t('infoCards').map(c=>`<div class="info-card ${c.cls}"><h3>${c.h}</h3><p>${c.p}</p></div>`).join('');
+  // Form section title
+  document.querySelector('#form-section .sec-title').textContent=t('secStart');
+  document.querySelector('.fsec-title').textContent=t('dogInfo');
+  // Dog form labels
+  const L=currentLang;
+  document.querySelector('label[for=dog-name]').textContent=t('fldName');
+  document.getElementById('dog-name').placeholder=t('fldNamePh');
+  document.querySelector('label[for=dog-age]').childNodes[0].textContent=t('fldAge')+' ';
+  document.querySelector('label[for=dog-sex]').childNodes[0].textContent=t('fldSex')+' ';
+  document.querySelector('label[for=dog-neuter]').childNodes[0].textContent=t('fldNeuter')+' ';
+  document.querySelector('label[for=dog-breed]').textContent=t('fldBreed');
+  document.getElementById('dog-breed').placeholder=t('fldBreedPh');
+  document.querySelector('#form-section .fsec-title:last-of-type')?.childNodes[0] && (document.querySelectorAll('.fsec-title')[1].childNodes[0].textContent=t('fldCountySec'));
+  // Age/sex/neuter options
+  const ageOpts=t('ageOpts');
+  const ageEl=document.getElementById('dog-age');
+  [...ageEl.options].forEach((o,i)=>{ if(i>0&&i<=ageOpts.length) o.text=ageOpts[i-1]; });
+  ageEl.options[0].text=t('plsSelect');
+  const sexEl=document.getElementById('dog-sex');
+  const sexOpts=t('sexOpts');
+  [...sexEl.options].forEach((o,i)=>{ if(i>0&&i<=sexOpts.length) o.text=sexOpts[i-1]; });
+  sexEl.options[0].text=t('plsSelect');
+  const neuterEl=document.getElementById('dog-neuter');
+  const nOpts=t('neuterOpts');
+  [...neuterEl.options].forEach((o,i)=>{ if(i>0&&i<=nOpts.length) o.text=nOpts[i-1]; });
+  neuterEl.options[0].text=t('plsSelect');
+  document.getElementById('county').options[0].text=t('plsSelectCity');
+  // Tab subs
+  const tabSubs=t('tabSub');
+  document.querySelectorAll('.tab-btn .tab-sub').forEach((el,i)=>{ if(i<tabSubs.length) el.textContent=tabSubs[i]; });
+  // Submit button
+  document.getElementById('submit-btn').textContent=t('submitBtn');
+  // Stats section
+  document.querySelector('#stats .sec-title').textContent=t('secStats');
+  document.querySelector('#stats>section>p').textContent=t('statsDesc');
+  document.querySelector('#firebase-banner').innerHTML=t('fbBanner');
+  const sl=t('statLabels');
+  document.querySelectorAll('.mc-lbl').forEach((el,i)=>{
+    const labels=[sl.total,sl.normal,sl.atrisk,sl.ccd,sl.avg, sl.total,sl.normal,sl.mild,sl.mod,sl.sev, sl.total,sl.normal,sl.mci,sl.sev,sl.avg];
+    if(i<labels.length) el.textContent=labels[i];
+  });
+  ['ccdr','cades','ccas'].forEach((s,i)=>{
+    const names={ccdr:'CCDR',cades:'CADES',ccas:'CCAS'};
+    document.getElementById(`${s}-cnt`)?.parentElement.childNodes[0] &&
+      (document.getElementById(`${s}-cnt`).previousSibling.textContent=` ${names[s]} ${t('secStats').replace('📈','').trim().split(' ')[0]} `);
+  });
+  // Fun facts
+  document.querySelector('#form-section ~ .container .sec-title') &&
+    (document.querySelectorAll('.container .sec-title')[3].textContent=t('secFacts'));
+  document.querySelectorAll('.ff').forEach((el,i)=>{
+    const f=t('facts')[i];
+    if(f){ el.querySelector('.ff-icon').textContent=f.icon; el.querySelector('h3').textContent=f.h; el.querySelector('p').textContent=f.p; }
+  });
+  // Literature
+  document.querySelector('#literature .sec-title').textContent=t('secLit');
+  document.querySelectorAll('#literature .acc-item').forEach((el,i)=>{
+    const li=t('litItems')[i];
+    if(li){
+      el.querySelector('.acc-hd').childNodes[0].textContent=li.h+' ';
+      el.querySelector('.acc-bd').innerHTML=li.b;
+    }
+  });
+  // Footer
+  const fp=document.querySelectorAll('footer>p');
+  t('footer').forEach((txt,i)=>{ if(fp[i]) fp[i].textContent=txt; });
+  // Scale info cards
+  ['ccdr','cades','ccas'].forEach(s=>{
+    const si=t('scaleInfo')[s];
+    if(!si) return;
+    const card=document.querySelector(`#tab-${s} .scale-info`);
+    if(!card) return;
+    card.querySelector('.scale-info-meta').textContent=si.meta;
+    const pros=card.querySelector('.pros ul');
+    const cons=card.querySelector('.cons ul');
+    if(pros) pros.innerHTML=si.pros.map(p=>`<li>${p}</li>`).join('');
+    if(cons) cons.innerHTML=si.cons.map(c=>`<li>${c}</li>`).join('');
+  });
+  // Section titles inside tabs
+  const st=t('secTitles');
+  const ccdrFsecs=document.querySelectorAll('#tab-ccdr .fsec-title');
+  if(ccdrFsecs[0]) ccdrFsecs[0].textContent=st.ccdr;
+  const ccdrNote=document.querySelector('#tab-ccdr .fsec p');
+  if(ccdrNote) ccdrNote.textContent=st.ccdrNote;
+  const ccdrFsec2=ccdrFsecs[1];
+  if(ccdrFsec2) ccdrFsec2.textContent=st.ccdr2;
+  const cadesFsec=document.querySelector('#tab-cades .fsec-title');
+  if(cadesFsec) cadesFsec.textContent=st.cadesTitle;
+  const ccasFsec=document.querySelector('#tab-ccas .fsec-title');
+  if(ccasFsec) ccasFsec.textContent=st.ccasTitle;
+  // Rebuild questions
+  buildAllQuestions();
+  // Stats chart labels (re-render if data available)
+  if(cachedData.length) renderStats(cachedData);
+  // History section
+  if(document.getElementById('history-section').style.display!=='none'){
+    const ht=document.querySelector('#history-section>div:first-child');
+    if(ht) ht.textContent=t('histTitle');
+    document.getElementById('dog-id-display').nextSibling && (document.querySelector('#history-section .lang-sw') || null);
+  }
+}
+
+function buildAllQuestions(){
+  // CCDR
+  const ccdrQ=t('ccdrQ');
+  const opts=t('opts');
+  const qnote=t('qnote');
+  let s1='',s2='';
+  ccdrQ.forEach((item,idx)=>{
+    const n=idx+1;
+    const vals=opts[item.opts];
+    const note=item.note?`<br><small style="color:var(--lite);font-weight:400">${qnote[item.note.split('.')[1]]}</small>`:'';
+    const multiTag=item.multi?`<span class="multi">${item.multi}</span>`:'';
+    const optHtml=vals.map((lbl,vi)=>`<label class="opt"><input type="radio" name="q${n}" value="${vi+1}"><span class="obox">${lbl}</span></label>`).join('');
+    const optsClass=vals.length===5?'opts':'opts4';
+    const html=`<div class="qblock"><div class="qtext"><span class="qnum">${n}</span>${item.q}${multiTag}${note}</div><div class="${optsClass}">${optHtml}</div></div>`;
+    if(n<=7) s1+=html; else s2+=html;
+  });
+  const ccdrS1=document.getElementById('ccdr-questions-s1');
+  const ccdrS2=document.getElementById('ccdr-questions-s2');
+  if(ccdrS1) ccdrS1.innerHTML=s1;
+  if(ccdrS2) ccdrS2.innerHTML=s2;
+  // CADES
+  const cadesQ=t('cadesQ');
+  const cOpts=opts.cades6;
+  let cadesHtml='';
+  let cn=1;
+  cadesQ.forEach(({domain,qs})=>{
+    cadesHtml+=`<span class="domain-hd cades">${domain}</span>`;
+    qs.forEach(q=>{
+      const optHtml=cOpts.map((lbl,vi)=>`<label class="opt"><input type="radio" name="cd${cn}" value="${vi}"><span class="obox">${lbl}</span></label>`).join('');
+      cadesHtml+=`<div class="qblock"><div class="qtext"><span class="qnum cades">${cn}</span>${q}</div><div class="opts6">${optHtml}</div></div>`;
+      cn++;
+    });
+  });
+  document.getElementById('cades-questions').innerHTML=cadesHtml;
+  // CCAS
+  const ccasQ=t('ccasQ');
+  const aOpts=opts.ccas4;
+  let ccasHtml='';
+  let an=1;
+  ccasQ.forEach(({domain,multi,qs})=>{
+    const badge=multi?`<span class="multi" style="background:#fff;color:#059669;font-size:.7rem;margin-left:.4rem">計分×2</span>`:'';
+    ccasHtml+=`<span class="domain-hd ccas">${domain}${badge}</span>`;
+    qs.forEach(q=>{
+      const optHtml=aOpts.map((lbl,vi)=>`<label class="opt"><input type="radio" name="ca${an}" value="${vi}"><span class="obox">${lbl}</span></label>`).join('');
+      ccasHtml+=`<div class="qblock"><div class="qtext"><span class="qnum ccas">${an}</span>${q}</div><div class="opts4">${optHtml}</div></div>`;
+      an++;
+    });
+  });
+  document.getElementById('ccas-questions').innerHTML=ccasHtml;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+if(FB_READY){
+  // 即時監聽所有使用者的填寫資料
+  db.collection('submissions').onSnapshot(snapshot=>{
+    cachedData=snapshot.docs.map(d=>d.data());
+    renderStats(cachedData);
+    // 更新統計區標題總筆數
+    const total=cachedData.length;
+    const unique=deduplicateForStats(cachedData).length;
+    document.getElementById('stats-total-badge').textContent=
+      total?`全台灣共 ${unique} 隻狗（${total} 次填寫，統計以每隻最新一筆計算）`:'尚無資料';
+  }, err=>console.error('Firestore listener error:',err));
+} else {
+  document.getElementById('firebase-banner').style.display='block';
+  renderStats([]);
+}
+applyLang('zh');
+</script>
 </body>
 </html>
